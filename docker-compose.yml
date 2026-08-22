@@ -1,0 +1,41 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-hr_helper}
+      MYSQL_USER: ${MYSQL_USER:-hr_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-hr_password}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-mysql://hr_user:hr_password@mysql:3306/hr_helper}
+      PORT: ${BACKEND_PORT:-3000}
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    depends_on:
+      - mysql
+
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+  ai-service:
+    build: ./ai-service
+    environment:
+      PORT: ${AI_SERVICE_PORT:-8000}
+    ports:
+      - "${AI_SERVICE_PORT:-8000}:8000"
+
+volumes:
+  mysql_data:
