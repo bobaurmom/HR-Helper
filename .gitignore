@@ -7,4 +7,3 @@ __pycache__/
 coverage/
 .vscode/
 frontend/.vite/
-backend/prisma/migrations/*/migration_lock.toml

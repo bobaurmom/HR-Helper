@@ -29,6 +29,11 @@ services:
       S3_BUCKET_NAME: ${S3_BUCKET_NAME}
     ports:
       - "${BACKEND_PORT:-3000}:3000"
+      - "5555:5555" # Prisma Studio Port. Run `docker compose exec backend npx prisma studio` to access it.
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/prisma:/app/prisma
+    command: sh -c "npx prisma migrate deploy && npm run start:dev"
     depends_on:
       mysql:
         condition: service_healthy
