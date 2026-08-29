@@ -11,12 +11,6 @@ export class FileResponseDto {
     fileId!: number;
 
     @ApiProperty({
-        description: 'The key of the file in the storage system',
-        example: 'uploads/avatar.pdf',
-    })
-    key!: string;
-
-    @ApiProperty({
         description: 'The name of the file',
         example: 'avatar.pdf',
     })

@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { S3Service } from '../s3/s3.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { FileResponseDto } from './dto/fileResponse.dto';
@@ -10,7 +10,7 @@ export class FilesService {
     , private readonly prisma: PrismaService
   ) {}
 
-  async getPresignedUrl(filename: string, fileSize: number): Promise<ResponseUploadUrlDto> {
+  async getPresignedUploadUrl(filename: string, fileSize: number): Promise<ResponseUploadUrlDto> {
     if (!filename.toLowerCase().endsWith('.pdf')) {
       throw new BadRequestException('Only PDF files are allowed.');
     }
@@ -37,7 +37,7 @@ export class FilesService {
     try {
       const metadata = await this.s3Service.getFileMetadata(key);
       if (!metadata) {
-        throw new BadRequestException('File does not exist in S3.');
+        throw new BadRequestException('File does not exis.');
       }
 
       const fileRecord = await this.prisma.file.create({
@@ -52,5 +52,35 @@ export class FilesService {
     } catch (error) {
       throw new BadRequestException('Error creating file record.');
     } 
+  }
+
+  async getFile(): Promise<FileResponseDto[]> {
+    try {
+      const fileRecords = await this.prisma.file.findMany();
+      return fileRecords.map(record => new FileResponseDto(record));
+    } catch (error) {
+      throw new InternalServerErrorException('Error retrieving file records.');
+    }
+  }
+
+  async getFileById(id: number): Promise<FileResponseDto & { url: string }> {
+    try {
+      const fileRecord = await this.prisma.file.findUnique({
+        where: { id },
+      });
+
+      if (!fileRecord) {
+        throw new NotFoundException(`File is not found.`);
+      }
+
+      const res = await this.s3Service.getPresignedDownloadUrl(fileRecord.key, 60);
+      const fileResponse = new FileResponseDto(fileRecord);
+      return { ...fileResponse, url: res };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error retrieving file record.');
+    }
   }
 }

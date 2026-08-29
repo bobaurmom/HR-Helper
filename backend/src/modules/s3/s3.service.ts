@@ -1,6 +1,6 @@
 import { Injectable, Inject, InternalServerErrorException } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
-import { S3Client, PutObjectCommand, DeleteObjectCommand, S3ServiceException, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, S3ServiceException, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import s3Config from './s3.config';
 
@@ -71,5 +71,13 @@ export class S3Service {
       contentType: response.ContentType || '',
       contentLength: response.ContentLength || 0,
     };
+  }
+
+  async getPresignedDownloadUrl(key: string, expiresInSeconds: number = 60): Promise<string> {
+    const command = new GetObjectCommand({
+      Bucket: this.bucketName,
+      Key: key,
+    });
+    return getSignedUrl(this.s3Client, command, { expiresIn: expiresInSeconds });
   }
 }
