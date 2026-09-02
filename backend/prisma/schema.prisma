@@ -7,6 +7,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum FieldType {
+  TEXT
+  NUMBER
+  DATE
+  CHECKBOX
+  RADIO
+  SELECT
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
@@ -14,6 +23,8 @@ model User {
   googleId String? @unique @map("google_id")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  forms     Form[]
 
   @@map("users")
 }
@@ -27,5 +38,82 @@ model File {
   createdAt DateTime   @default(now()) @map("created_at")
   updatedAt DateTime   @updatedAt @map("updated_at")
 
+  cvSubmissions FormSubmission[]
+
   @@map("files")
+}
+
+model Form {
+  id        Int      @id @default(autoincrement())
+  title     String
+  description String?
+  requirements String? @db.Text
+  isOpen    Boolean  @default(false) @map("is_open")
+  openAt    DateTime? @map("open_at")
+  closeAt   DateTime? @map("close_at")
+  userId    Int      @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User     @relation(fields: [userId], references: [id])
+  fields    Field[]
+  submissions FormSubmission[]
+
+  @@map("forms")
+}
+
+model Field {
+  id        Int      @id @default(autoincrement())
+  formId    Int      @map("form_id")
+  label     String
+  type      FieldType
+  required  Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  form      Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  options   Option[]
+  answers   SubmissionAnswer[]
+
+  @@map("fields")
+}
+
+model Option {
+  id        Int      @id @default(autoincrement())
+  fieldId   Int      @map("field_id")
+  value     String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  field     Field    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  answers   SubmissionAnswer[]
+
+  @@map("options")
+}
+
+model FormSubmission {
+  id        Int      @id @default(autoincrement())
+  formId    Int      @map("form_id")
+  cvFileId  Int      @unique @map("cv_file_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  form      Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  cvFile    File     @relation(fields: [cvFileId], references: [id], onDelete: Cascade)
+  answers   SubmissionAnswer[]
+
+  @@map("form_submissions")
+}
+
+model SubmissionAnswer {
+  id             Int            @id @default(autoincrement())
+  submissionId   Int            @map("submission_id")
+  fieldId        Int            @map("field_id")
+  value          String?        
+  optionId       Int?           @map("option_id") 
+
+  submission     FormSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  field          Field          @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  option         Option?        @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@map("submission_answers")
 }
