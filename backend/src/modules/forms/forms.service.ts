@@ -39,14 +39,24 @@ export class FormsService {
   }
 
   async findAllByUserId(userId: number) {
-    return this.prisma.form.findMany({
+    const forms = await this.prisma.form.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
+      include: {
+        _count: {
+          select: { submissions: true },
+        },
+      },
     });
+
+    return forms.map((form) => ({
+      ...form,
+      submissionCount: form._count.submissions,
+    }));
   }
 
   async findOne(id: number) {
-    return this.prisma.form.findUnique({
+    const form = await this.prisma.form.findUnique({
       where: { id },
       include: {
         fields: {
@@ -54,8 +64,18 @@ export class FormsService {
             options: true,
           },
         },
+        _count: {
+          select: { submissions: true },
+        },
       },
     });
+
+    if (!form) return null;
+
+    return {
+      ...form,
+      submissionCount: form._count.submissions,
+    };
   }
 
   async update(id: number, userId: number, dto: UpdateFormDto) {

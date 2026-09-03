@@ -24,4 +24,7 @@ export class FormResponseDto {
 
   @ApiProperty()
   updatedAt!: Date;
+
+  @ApiProperty()
+  submissionCount?: number;
 }
