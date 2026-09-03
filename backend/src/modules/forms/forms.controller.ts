@@ -41,40 +41,40 @@ export class FormsController {
     return form;
   }
 
-  @Post(':id/copy')
+  @Post(':formId/copy')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Copy an existing form' })
   @ApiResponse({ status: 201, type: FormResponseDto })
-  async copy(@Req() req: { user: { id: number } }, @Param('id') id: string) {
-    return this.formsService.copy(Number(id), req.user.id);
+  async copy(@Req() req: { user: { id: number } }, @Param('formId') formId: string) {
+    return this.formsService.copy(Number(formId), req.user.id);
   }
 
-  @Patch(':id')
+  @Patch(':formId')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update an existing form' })
   @ApiResponse({ status: 200, type: FormResponseDto })
-  async update(@Param('id') id: string, @Body() updateFormDto: UpdateFormDto) {
-    return this.formsService.update(Number(id), updateFormDto);
+  async update(@Req() req: { user: { id: number } }, @Param('formId') formId: string, @Body() updateFormDto: UpdateFormDto) {
+    return this.formsService.update(Number(formId), req.user.id, updateFormDto);
   }
 
-  @Patch(':id/status')
+  @Patch(':formId/status')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update form open status' })
   @ApiResponse({ status: 200, type: FormResponseDto })
-  async updateStatus(@Param('id') id: string, @Body() updateStatusDto: UpdateStatusDto) {
-    return this.formsService.updateStatus(Number(id), updateStatusDto.isOpen);
+  async updateStatus(@Req() req: { user: { id: number } }, @Param('formId') formId: string, @Body() updateStatusDto: UpdateStatusDto) {
+    return this.formsService.updateStatus(Number(formId), req.user.id, updateStatusDto.isOpen);
   }
 
-  @Delete(':id')
+  @Delete(':formId')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @HttpCode(204)
   @ApiOperation({ summary: 'Delete a form' })
   @ApiResponse({ status: 204, description: 'Form deleted successfully' })
-  async delete(@Param('id') id: string) {
-    await this.formsService.delete(Number(id));
+  async delete(@Req() req: { user: { id: number } }, @Param('formId') formId: string) {
+    await this.formsService.delete(Number(formId), req.user.id);
   }
 }

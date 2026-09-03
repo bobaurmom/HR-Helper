@@ -1,0 +1,47 @@
+import { Controller, Post, Get, Body, Param, UseGuards, NotFoundException, Req, Delete, HttpCode } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { FormSubmissionsService } from './form-submissions.service';
+import { SubmitFormDto } from './dto/submit-form.dto';
+import { SubmissionResponseDto } from './dto/submission-response.dto';
+import { JwtAuthGuard } from '../auth/auth.middleware';
+
+@ApiTags('form-submissions')
+@Controller('forms/:formId/submissions')
+export class FormSubmissionsController {
+  constructor(private readonly submissionsService: FormSubmissionsService) {}
+
+  @Post()
+  @ApiOperation({ summary: 'Submit a form' })
+  @ApiResponse({ status: 201, type: SubmissionResponseDto })
+  async submit(@Param('formId') formId: string, @Body() submitFormDto: SubmitFormDto) {
+    return this.submissionsService.submit(Number(formId), submitFormDto);
+  }
+
+  @Get()
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get all submissions for a form' })
+  @ApiResponse({ status: 200, type: [SubmissionResponseDto] })
+  async findAll(@Req() req: { user: { id: number } }, @Param('formId') formId: string) {
+    return this.submissionsService.findAllByFormId(Number(formId), req.user.id);
+  }
+
+  @Get(':submissionId')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get a submission by ID with form structure' })
+  @ApiResponse({ status: 200 })
+  async findOne(@Req() req: { user: { id: number } }, @Param('formId') formId: string, @Param('submissionId') submissionId: string) {
+    return this.submissionsService.findOne(Number(submissionId), req.user.id);
+  }
+
+  @Delete(':submissionId')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(204)
+  @ApiOperation({ summary: 'Delete a submission' })
+  @ApiResponse({ status: 204, description: 'Submission deleted successfully' })
+  async delete(@Req() req: { user: { id: number } }, @Param('submissionId') submissionId: string) {
+    return this.submissionsService.delete(Number(submissionId), req.user.id);
+  }
+}

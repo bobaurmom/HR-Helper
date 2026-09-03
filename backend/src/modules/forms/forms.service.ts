@@ -58,7 +58,12 @@ export class FormsService {
     });
   }
 
-  async update(id: number, dto: UpdateFormDto) {
+  async update(id: number, userId: number, dto: UpdateFormDto) {
+    const form = await this.prisma.form.findUnique({ where: { id } });
+    if (!form || form.userId !== userId) {
+      throw new ForbiddenException('You do not have permission to edit this form');
+    }
+
     const hasSubmissions = await this.prisma.formSubmission.count({
       where: { formId: id },
     });
@@ -105,7 +110,13 @@ export class FormsService {
   }
 
   async copy(id: number, userId: number) {
-    const originalForm = await this.findOne(id);
+    const originalForm = await this.prisma.form.findUnique({
+        where: { id },
+        include: {
+            fields: { include: { options: true } }
+        }
+    });
+    
     if (!originalForm) {
       throw new NotFoundException('Form not found');
     }
@@ -140,7 +151,12 @@ export class FormsService {
     });
   }
 
-  async updateStatus(id: number, isOpen: boolean) {
+  async updateStatus(id: number, userId: number, isOpen: boolean) {
+    const form = await this.prisma.form.findUnique({ where: { id } });
+    if (!form || form.userId !== userId) {
+        throw new ForbiddenException('You do not have permission to edit this form');
+    }
+
     try {
       return await this.prisma.form.update({
         where: { id },
@@ -154,7 +170,12 @@ export class FormsService {
     }
   }
 
-  async delete(id: number) {
+  async delete(id: number, userId: number) {
+    const form = await this.prisma.form.findUnique({ where: { id } });
+    if (!form || form.userId !== userId) {
+        throw new ForbiddenException('You do not have permission to delete this form');
+    }
+
     try {
       return await this.prisma.form.delete({
         where: { id },
