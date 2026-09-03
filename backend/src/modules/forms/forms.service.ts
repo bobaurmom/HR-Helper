@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateFormDto } from './dto/create-form.dto';
 import { UpdateFormDto } from './dto/update-form.dto';
@@ -59,6 +59,14 @@ export class FormsService {
   }
 
   async update(id: number, dto: UpdateFormDto) {
+    const hasSubmissions = await this.prisma.formSubmission.count({
+      where: { formId: id },
+    });
+
+    if (hasSubmissions > 0) {
+      throw new ForbiddenException('Cannot edit a form that has received submissions');
+    }
+
     return this.prisma.$transaction(async (tx) => {
       // 1. Delete all existing fields (options will cascade delete)
       await tx.field.deleteMany({
@@ -96,10 +104,47 @@ export class FormsService {
     });
   }
 
-  async delete(id: number) {
+  async copy(id: number, userId: number) {
+    const originalForm = await this.findOne(id);
+    if (!originalForm) {
+      throw new NotFoundException('Form not found');
+    }
+
+    return this.prisma.form.create({
+      data: {
+        title: `Copy of ${originalForm.title}`,
+        description: originalForm.description,
+        requirements: originalForm.requirements,
+        userId: userId,
+        isOpen: false,
+        fields: {
+          create: originalForm.fields.map((field) => ({
+            label: field.label,
+            type: field.type,
+            required: field.required,
+            options: {
+              create: field.options.map((opt) => ({
+                value: opt.value,
+              })),
+            },
+          })),
+        },
+      },
+      include: {
+        fields: {
+          include: {
+            options: true,
+          },
+        },
+      },
+    });
+  }
+
+  async updateStatus(id: number, isOpen: boolean) {
     try {
-      return await this.prisma.form.delete({
+      return await this.prisma.form.update({
         where: { id },
+        data: { isOpen },
       });
     } catch (error: any) {
       if (error?.code === 'P2025') {
@@ -109,11 +154,10 @@ export class FormsService {
     }
   }
 
-  async updateStatus(id: number, isOpen: boolean) {
+  async delete(id: number) {
     try {
-      return await this.prisma.form.update({
+      return await this.prisma.form.delete({
         where: { id },
-        data: { isOpen },
       });
     } catch (error: any) {
       if (error?.code === 'P2025') {

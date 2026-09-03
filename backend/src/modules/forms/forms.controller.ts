@@ -41,6 +41,15 @@ export class FormsController {
     return form;
   }
 
+  @Post(':id/copy')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Copy an existing form' })
+  @ApiResponse({ status: 201, type: FormResponseDto })
+  async copy(@Req() req: { user: { id: number } }, @Param('id') id: string) {
+    return this.formsService.copy(Number(id), req.user.id);
+  }
+
   @Patch(':id')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
