@@ -44,7 +44,7 @@ model File {
 }
 
 model Form {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(uuid())
   title     String
   description String?
   requirements String? @db.Text
@@ -64,7 +64,7 @@ model Form {
 
 model Field {
   id        Int      @id @default(autoincrement())
-  formId    Int      @map("form_id")
+  formId    String   @map("form_id")
   label     String
   type      FieldType
   required  Boolean  @default(false)
@@ -93,7 +93,7 @@ model Option {
 
 model FormSubmission {
   id        Int      @id @default(autoincrement())
-  formId    Int      @map("form_id")
+  formId    String   @map("form_id")
   cvFileId  Int      @unique @map("cv_file_id")
   createdAt DateTime @default(now()) @map("created_at")
 

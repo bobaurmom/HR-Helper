@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { FormSubmissionsService } from './form-submissions.service';
 import { SubmitFormDto } from './dto/submit-form.dto';
 import { SubmissionResponseDto } from './dto/submission-response.dto';
+import { SubmissionDetailResponseDto } from './dto/submission-detail-response.dto';
 import { JwtAuthGuard } from '../auth/auth.middleware';
 
 @ApiTags('form-submissions')
@@ -14,7 +15,7 @@ export class FormSubmissionsController {
   @ApiOperation({ summary: 'Submit a form' })
   @ApiResponse({ status: 201, type: SubmissionResponseDto })
   async submit(@Param('formId') formId: string, @Body() submitFormDto: SubmitFormDto) {
-    return this.submissionsService.submit(Number(formId), submitFormDto);
+    return this.submissionsService.submit(formId, submitFormDto);
   }
 
   @Get()
@@ -23,17 +24,18 @@ export class FormSubmissionsController {
   @ApiOperation({ summary: 'Get all submissions for a form' })
   @ApiResponse({ status: 200, type: [SubmissionResponseDto] })
   async findAll(@Req() req: { user: { id: number } }, @Param('formId') formId: string) {
-    return this.submissionsService.findAllByFormId(Number(formId), req.user.id);
+    return this.submissionsService.findAllByFormId(formId, req.user.id);
   }
 
   @Get(':submissionId')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get a submission by ID with form structure' })
-  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 200, type: SubmissionDetailResponseDto })
   async findOne(@Req() req: { user: { id: number } }, @Param('formId') formId: string, @Param('submissionId') submissionId: string) {
     return this.submissionsService.findOne(Number(submissionId), req.user.id);
   }
+
 
   @Delete(':submissionId')
   @ApiBearerAuth()

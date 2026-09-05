@@ -43,7 +43,7 @@ The application requires that all CVs are uploaded via a pre-signed S3 URL to en
 ### 2. Submit the Form
 Once you have the `cvFileId`, submit the form responses.
 
-- **Endpoint**: `POST /form-submissions/:formId/submit`
+- **Endpoint**: `POST /forms/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11/submissions`
 - **Request Body**:
   ```json
   {
@@ -57,5 +57,23 @@ Once you have the `cvFileId`, submit the form responses.
 - **Success Response**: `201 Created`
 - **Validation**:
   - The endpoint validates that all mandatory fields are present.
-  - The system checks if the form is currently open (`isOpen: true`).
+  - The system checks if the current time is within the form's `openAt` and `closeAt` window.
   - The submission is recorded atomically.
+
+---
+
+### 3. Update Form Schedule
+To open a form immediately and schedule a closing time, use the following endpoint:
+
+- **Endpoint**: `PATCH /forms/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11/status`
+- **Request Body**:
+  ```json
+  {
+    "closeAt": "2026-09-10T17:00:00.000Z"
+  }
+  ```
+- **Behavior**: 
+  - The form is automatically opened at the time of the request.
+  - The form will automatically close at the provided ISO 8601 timestamp.
+  - **Timezone Best Practice**: Always send full ISO 8601 strings (ending with `Z` for UTC). The backend will handle the comparison safely using UTC timestamps.
+

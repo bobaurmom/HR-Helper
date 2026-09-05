@@ -1,15 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class SubmissionResponseDto {
-  @ApiProperty()
+  @ApiProperty({ example: 1 })
   id!: number;
 
-  @ApiProperty()
-  formId!: number;
+  @ApiProperty({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' })
+  formId!: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 123 })
   cvFileId!: number;
 
-  @ApiProperty()
+  @ApiProperty({ example: '2026-09-01T00:00:00.000Z' })
   createdAt!: Date;
 }

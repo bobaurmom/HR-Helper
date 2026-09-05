@@ -2,7 +2,6 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateFormDto } from './dto/create-form.dto';
 import { UpdateFormDto } from './dto/update-form.dto';
-import { UpdateStatusDto } from './dto/update-status.dto';
 
 @Injectable()
 export class FormsService {
@@ -55,7 +54,7 @@ export class FormsService {
     }));
   }
 
-  async findOne(id: number) {
+  async findOne(id: string) {
     const form = await this.prisma.form.findUnique({
       where: { id },
       include: {
@@ -78,7 +77,7 @@ export class FormsService {
     };
   }
 
-  async update(id: number, userId: number, dto: UpdateFormDto) {
+  async update(id: string, userId: number, dto: UpdateFormDto) {
     const form = await this.prisma.form.findUnique({ where: { id } });
     if (!form || form.userId !== userId) {
       throw new ForbiddenException('You do not have permission to edit this form');
@@ -129,7 +128,7 @@ export class FormsService {
     });
   }
 
-  async copy(id: number, userId: number) {
+  async copy(id: string, userId: number) {
     const originalForm = await this.prisma.form.findUnique({
         where: { id },
         include: {
@@ -171,26 +170,22 @@ export class FormsService {
     });
   }
 
-  async updateStatus(id: number, userId: number, isOpen: boolean) {
+  async updateSchedule(id: string, userId: number, closeAt: string) {
     const form = await this.prisma.form.findUnique({ where: { id } });
     if (!form || form.userId !== userId) {
-        throw new ForbiddenException('You do not have permission to edit this form');
+        throw new ForbiddenException('You do not have permission to update this form');
     }
 
-    try {
-      return await this.prisma.form.update({
-        where: { id },
-        data: { isOpen },
-      });
-    } catch (error: any) {
-      if (error?.code === 'P2025') {
-        throw new NotFoundException(`Form with ID ${id} not found`);
-      }
-      throw error;
-    }
+    return this.prisma.form.update({
+      where: { id },
+      data: {
+        openAt: new Date(), // Start immediately
+        closeAt: new Date(closeAt),
+      },
+    });
   }
 
-  async delete(id: number, userId: number) {
+  async delete(id: string, userId: number) {
     const form = await this.prisma.form.findUnique({ where: { id } });
     if (!form || form.userId !== userId) {
         throw new ForbiddenException('You do not have permission to delete this form');

@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { FormsService } from './forms.service';
 import { CreateFormDto } from './dto/create-form.dto';
 import { UpdateFormDto } from './dto/update-form.dto';
-import { UpdateStatusDto } from './dto/update-status.dto';
+import { UpdateScheduleDto } from './dto/update-status.dto';
 import { FormResponseDto } from './dto/form-response.dto';
 import { JwtAuthGuard } from '../auth/auth.middleware';
 
@@ -34,7 +34,7 @@ export class FormsController {
   @ApiOperation({ summary: 'Get a form by ID' })
   @ApiResponse({ status: 200, type: FormResponseDto })
   async findOne(@Param('id') id: string) {
-    const form = await this.formsService.findOne(Number(id));
+    const form = await this.formsService.findOne(id);
     if (!form) {
       throw new NotFoundException('Form not found');
     }
@@ -47,7 +47,7 @@ export class FormsController {
   @ApiOperation({ summary: 'Copy an existing form' })
   @ApiResponse({ status: 201, type: FormResponseDto })
   async copy(@Req() req: { user: { id: number } }, @Param('formId') formId: string) {
-    return this.formsService.copy(Number(formId), req.user.id);
+    return this.formsService.copy(formId, req.user.id);
   }
 
   @Patch(':formId')
@@ -56,16 +56,16 @@ export class FormsController {
   @ApiOperation({ summary: 'Update an existing form' })
   @ApiResponse({ status: 200, type: FormResponseDto })
   async update(@Req() req: { user: { id: number } }, @Param('formId') formId: string, @Body() updateFormDto: UpdateFormDto) {
-    return this.formsService.update(Number(formId), req.user.id, updateFormDto);
+    return this.formsService.update(formId, req.user.id, updateFormDto);
   }
 
   @Patch(':formId/status')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Update form open status' })
+  @ApiOperation({ summary: 'Update form schedule (open now, close at end time)' })
   @ApiResponse({ status: 200, type: FormResponseDto })
-  async updateStatus(@Req() req: { user: { id: number } }, @Param('formId') formId: string, @Body() updateStatusDto: UpdateStatusDto) {
-    return this.formsService.updateStatus(Number(formId), req.user.id, updateStatusDto.isOpen);
+  async updateStatus(@Req() req: { user: { id: number } }, @Param('formId') formId: string, @Body() dto: UpdateScheduleDto) {
+    return this.formsService.updateSchedule(formId, req.user.id, dto.closeAt);
   }
 
   @Delete(':formId')
@@ -75,6 +75,6 @@ export class FormsController {
   @ApiOperation({ summary: 'Delete a form' })
   @ApiResponse({ status: 204, description: 'Form deleted successfully' })
   async delete(@Req() req: { user: { id: number } }, @Param('formId') formId: string) {
-    await this.formsService.delete(Number(formId), req.user.id);
+    await this.formsService.delete(formId, req.user.id);
   }
 }

@@ -10,13 +10,22 @@ export class FormSubmissionsService {
     private formsService: FormsService,
   ) {}
 
-  async submit(formId: number, dto: SubmitFormDto) {
+  async submit(formId: string, dto: SubmitFormDto) {
     const form = await this.formsService.findOne(formId);
     if (!form) {
       throw new NotFoundException('Form not found');
     }
-    if (!form.isOpen) {
-      throw new BadRequestException('Form is closed');
+
+    const now = new Date();
+
+    // Check if the form has a start time and hasn't opened yet
+    if (form.openAt && now < form.openAt) {
+      throw new BadRequestException('Form is not open yet');
+    }
+
+    // Check if the form has an end time and has already closed
+    if (form.closeAt && now > form.closeAt) {
+      throw new BadRequestException('Form submission period has ended');
     }
 
     // Validate required fields
@@ -81,7 +90,7 @@ export class FormSubmissionsService {
     return submission;
   }
 
-  async findAllByFormId(formId: number, userId: number) {
+  async findAllByFormId(formId: string, userId: number) {
     const form = await this.prisma.form.findUnique({ where: { id: formId } });
     if (!form || form.userId !== userId) {
       throw new ForbiddenException('You do not have permission to view submissions for this form');
@@ -95,7 +104,7 @@ export class FormSubmissionsService {
       },
     });
   }
-
+  
   async delete(submissionId: number, userId: number) {
     const submission = await this.prisma.formSubmission.findUnique({
       where: { id: submissionId },
