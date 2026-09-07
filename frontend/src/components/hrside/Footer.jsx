@@ -1,9 +1,8 @@
 const quickLinks = [
-  { label: 'Home', href: '#top' },
-  { label: 'About Us', href: '#about' },
-  { label: 'Features', href: '#features' },
-  { label: 'Pricing', href: '#pricing' },
-  { label: 'Contact', href: '#support' },
+  { label: 'Create form', href: '#create-form' },
+  { label: 'Applications', href: '#applications' },
+  { label: 'Interview', href: '#interview' },
+  { label: 'Support', href: '#support' },
 ];
 
 const socials = [
@@ -29,7 +28,7 @@ function Footer() {
             <span className="font-sans text-2xl font-bold">HiORing</span>
           </a>
           <p className="mt-5 max-w-xs text-justify text-sm leading-relaxed text-white/70">
-            From inbox to shortlist in four steps &mdash; HiORing keeps your hiring pipeline
+            From job link to interview, in one thread &mdash; HiORing keeps your hiring pipeline
             moving while your team talks to people, not spreadsheets.
           </p>
           <div className="mt-6 flex gap-3">
@@ -49,7 +48,7 @@ function Footer() {
         </div>
 
         <div>
-          <h4 className="text-sm font-bold uppercase tracking-widest text-gold">Quick Link</h4>
+          <h4 className="text-sm font-bold uppercase tracking-widest text-gold">HR Hub</h4>
           <ul className="mt-5 space-y-3">
             {quickLinks.map((link) => (
               <li key={link.label}>

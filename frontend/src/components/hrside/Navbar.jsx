@@ -1,18 +1,17 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { useNavigation } from '../../context/NavigationContext';
+import ConfirmModal from './ConfirmModal';
 
 const links = [
   { label: 'Home', href: '#top' },
-  { label: 'Features', href: '#features' },
-  { label: 'How it works', href: '#how-it-works' },
-  { label: 'About Us', href: '#about' },
-  { label: 'Support', href: '#support' },
+  { label: 'Forms', href: '#forms' },
+  { label: 'Workspace', href: '#workspace' }
 ];
 
 function Logo() {
   return (
     <a href="#top" className="flex items-center gap-3">
-      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gold font-sans text-2xl font-bold text-plum shadow-sm">
+      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gold font-serif text-2xl font-bold text-plum shadow-sm">
         H
       </span>
       <span className="flex flex-col">
@@ -24,15 +23,12 @@ function Logo() {
 }
 
 function Navbar() {
-  const { goToLogin, goToSignup } = useNavigation();
+  const { goToWorkspace } = useNavigation();
   const [open, setOpen] = useState(false);
   const [rendered, setRendered] = useState(false);
   const [visible, setVisible] = useState(false);
   const [pill, setPill] = useState({ x: 0, w: 0, visible: false });
-  const [authHovered, setAuthHovered] = useState(null);
-  const [authPill, setAuthPill] = useState({ x: 0, w: 0, ready: false });
-  const loginRef = useRef(null);
-  const signupRef = useRef(null);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -47,19 +43,7 @@ function Navbar() {
     return () => clearTimeout(timeout);
   }, [open]);
 
-  const moveAuthPill = (ref) => {
-    if (!ref.current) return;
-    setAuthPill({ x: ref.current.offsetLeft, w: ref.current.offsetWidth, ready: true });
-  };
-
   useLayoutEffect(() => {
-    moveAuthPill(signupRef);
-    const remeasure = () => moveAuthPill(signupRef);
-    window.addEventListener('resize', remeasure);
-    return () => window.removeEventListener('resize', remeasure);
-  }, []);
-
-  useEffect(() => {
     const hidePill = () => setPill((p) => ({ ...p, x: 0, w: 0, visible: false }));
     const handleScroll = () => setOpen(false);
     window.addEventListener('resize', hidePill);
@@ -103,6 +87,12 @@ function Navbar() {
               key={link.label}
               href={link.href}
               onMouseEnter={handleLinkEnter}
+              onClick={(e) => {
+                if (link.label === 'Workspace') {
+                  e.preventDefault();
+                  setShowConfirm(true);
+                }
+              }}
               className="relative z-10 rounded-full px-4 py-2 text-sm font-medium text-stone-700 transition-colors duration-200 hover:text-plum"
             >
               {link.label}
@@ -110,49 +100,14 @@ function Navbar() {
           ))}
         </div>
 
-        <div className="hidden items-center gap-2 lg:flex">
+        <div className="hidden items-center gap-2 pr-1 lg:flex">
           <div
-            className="relative flex items-center gap-1"
-            onMouseLeave={() => {
-              setAuthHovered(null);
-              moveAuthPill(signupRef);
-            }}
+            className="group flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors duration-200 hover:bg-[#DAD7CD]"
           >
-            <span
-              aria-hidden="true"
-              style={{ transform: `translateX(${authPill.x}px)`, width: `${authPill.w}px` }}
-              className={`absolute inset-y-0 rounded-full bg-plum transition-[transform,width,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
-                authPill.ready ? 'opacity-100' : 'opacity-0'
-              }`}
-            />
-            <button
-              ref={loginRef}
-              type="button"
-              onClick={goToLogin}
-              onMouseEnter={() => {
-                setAuthHovered('login');
-                moveAuthPill(loginRef);
-              }}
-              className={`relative z-10 rounded-full px-5 py-2 text-sm font-semibold transition-colors duration-200 ${
-                authHovered === 'login' ? 'text-white' : 'text-plum'
-              }`}
-            >
-              Login
-            </button>
-            <button
-              ref={signupRef}
-              type="button"
-              onClick={goToSignup}
-              onMouseEnter={() => {
-                setAuthHovered('signup');
-                moveAuthPill(signupRef);
-              }}
-              className={`relative z-10 rounded-full px-5 py-2 text-sm font-semibold transition-colors duration-200 ${
-                authHovered === 'login' ? 'text-plum' : 'text-white'
-              }`}
-            >
-              Sign Up
-            </button>
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-plum text-sm font-bold uppercase text-white">
+              U
+            </span>
+            <span className="text-sm font-semibold text-plum">Username</span>
           </div>
         </div>
 
@@ -183,37 +138,40 @@ function Navbar() {
               <a
                 key={link.label}
                 href={link.href}
-                onClick={() => setOpen(false)}
+                onClick={(e) => {
+                  if (link.label === 'Workspace') {
+                    e.preventDefault();
+                    setOpen(false);
+                    setShowConfirm(true);
+                  } else {
+                    setOpen(false);
+                  }
+                }}
                 className="border-b border-stone-100 py-3 text-sm font-medium text-stone-700"
               >
                 {link.label}
               </a>
             ))}
           </div>
-          <div className="mt-4 flex gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                goToLogin();
-              }}
-              className="flex-1 rounded-full border border-plum/30 px-4 py-2.5 text-center text-sm font-semibold text-plum"
-            >
-              Login
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                goToSignup();
-              }}
-              className="flex-1 rounded-full bg-plum px-4 py-2.5 text-center text-sm font-semibold text-white"
-            >
-              Sign Up
-            </button>
+          <div className="mt-4 flex items-center gap-2 rounded-full px-3 py-2">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-plum text-sm font-bold uppercase text-white">
+              U
+            </span>
+            <span className="text-sm font-semibold text-plum">Username</span>
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={() => {
+          setShowConfirm(false);
+          goToWorkspace();
+        }}
+        title="Enter Workspace"
+        message="Do you want to enter Workspace?"
+      />
     </div>
   );
 }
