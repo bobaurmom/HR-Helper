@@ -21,7 +21,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
             clientID,
             clientSecret,
             callbackURL,
-            scope: ['email', 'profile'],
+            scope: ['email', 'profile', 'https://www.googleapis.com/auth/gmail.send'],
         });
     }
 
@@ -33,7 +33,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
                 name: `${name.givenName} ${name.familyName}`,
                 avatar: photos[0]?.value,
                 googleId: profile.id,
-            });
+            }, accessToken);
             done(null, user);
         } catch (error) {
             done(error, false);

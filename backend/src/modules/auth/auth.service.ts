@@ -10,7 +10,10 @@ export class AuthService {
         private jwtService: JwtService
     ) {}
 
-    async validateGoogleUser(details: { email: string; name: string; avatar?: string; googleId: string }) {
+    async validateGoogleUser(
+        details: { email: string; name: string; avatar?: string; googleId: string },
+        googleAccessToken: string,
+    ) {
         let user = await this.prisma.user.findUnique({
             where: { email: details.email },
         });
@@ -25,7 +28,7 @@ export class AuthService {
             });
         }
 
-        const payload = { id: user.id, email: user.email, role: 'HR' };
+        const payload = { id: user.id, email: user.email, role: 'HR', googleAccessToken };
         const token = this.jwtService.sign(payload);
 
         return { user, accessToken: token };

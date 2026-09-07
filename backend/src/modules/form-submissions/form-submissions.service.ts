@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { FormsService } from '../forms/forms.service';
 import { SubmitFormDto } from './dto/submit-form.dto';
@@ -38,7 +39,7 @@ export class FormSubmissionsService {
       }
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const submission = await tx.formSubmission.create({
         data: {
           formId: formId,
