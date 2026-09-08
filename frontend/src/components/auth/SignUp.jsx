@@ -1,5 +1,6 @@
 import { useNavigation } from '../../context/NavigationContext';
 import AuthInput from './AuthInput';
+import GoogleButton from './GoogleButton';
 
 function SignUp({ onSwitch }) {
   const { goToHR } = useNavigation();
@@ -8,6 +9,16 @@ function SignUp({ onSwitch }) {
     <div className="flex w-full max-w-md flex-col">
       <h1 className="font-sans text-4xl font-bold tracking-tight text-plum">Create your account</h1>
       <p className="mt-2 text-base text-stone-600">Set up <span className="text-[#CC9a1C]">HiORing</span> in a couple minutes</p>
+
+      <div className="mt-6">
+        <GoogleButton label="Sign up with Google" />
+      </div>
+
+      <div className="my-6 flex items-center gap-4">
+        <span className="h-px flex-1 bg-stone-200" />
+        <span className="text-xs font-medium text-stone-400">or</span>
+        <span className="h-px flex-1 bg-stone-200" />
+      </div>
 
       <form
         className="mt-8 space-y-5"

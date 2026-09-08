@@ -1,9 +1,12 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import LandingPage from './pages/LandingPage';
 import HRPage from './pages/HRPage';
 import Authentication from './pages/Authentication';
 import { NavigationProvider } from './context/NavigationContext';
 import User_Workspace from './pages/User_Workspace';
+import CreateForm from './pages/CreateForm';
+import FormView from './pages/FormView';
+import { setToken } from './services/api';
 
 function App() {
   const [view, setView] = useState(() => {
@@ -13,6 +16,21 @@ function App() {
   });
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState('login');
+  const [formViewId, setFormViewId] = useState(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (token) {
+      setToken(token);
+      params.delete('token');
+      const qs = params.toString();
+      const newUrl = window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash;
+      window.history.replaceState({}, '', newUrl);
+      setView('hr');
+      localStorage.setItem('hr-helper:view', 'hr');
+    }
+  }, []);
 
   const goToLogin = useCallback(() => {
     setAuthMode('login');
@@ -44,9 +62,21 @@ function App() {
     localStorage.setItem('hr-helper:view', 'landing');
   }, []);
 
+  const goToCreateForm = useCallback(() => {
+    setAuthOpen(false);
+    setView('create-form');
+    localStorage.setItem('hr-helper:view', 'create-form');
+  }, []);
+
+  const goToFormView = useCallback((formId) => {
+    setAuthOpen(false);
+    setFormViewId(formId);
+    setView('form-view');
+  }, []);
+
   const navigation = useMemo(
-    () => ({ goToLogin, goToSignup, goToHR, goToWorkspace, goToLanding }),
-    [goToLogin, goToSignup, goToHR, goToWorkspace, goToLanding]
+    () => ({ goToLogin, goToSignup, goToHR, goToWorkspace, goToLanding, goToCreateForm, goToFormView }),
+    [goToLogin, goToSignup, goToHR, goToWorkspace, goToLanding, goToCreateForm, goToFormView]
   );
 
   return (
@@ -54,6 +84,8 @@ function App() {
       {view === 'landing' && <LandingPage />}
       {view === 'hr' && <HRPage />}
       {view === 'workspace' && <User_Workspace />}
+      {view === 'create-form' && <CreateForm />}
+      {view === 'form-view' && formViewId && <FormView formId={formViewId} />}
       <Authentication open={authOpen} initialMode={authMode} onClose={closeAuth} />
     </NavigationProvider>
   );

@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { useNavigation } from '../../context/NavigationContext';
 import ConfirmModal from './ConfirmModal';
+import { getUser } from '../../services/api';
 
 const links = [
   { label: 'Home', href: '#top' },
@@ -23,12 +24,17 @@ function Logo() {
 }
 
 function Navbar() {
-  const { goToWorkspace } = useNavigation();
+  const { goToWorkspace, goToLogin } = useNavigation();
   const [open, setOpen] = useState(false);
   const [rendered, setRendered] = useState(false);
   const [visible, setVisible] = useState(false);
   const [pill, setPill] = useState({ x: 0, w: 0, visible: false });
   const [showConfirm, setShowConfirm] = useState(false);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    setUser(getUser());
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -101,14 +107,24 @@ function Navbar() {
         </div>
 
         <div className="hidden items-center gap-2 pr-1 lg:flex">
-          <div
-            className="group flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors duration-200 hover:bg-[#DAD7CD]"
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-plum text-sm font-bold uppercase text-white">
-              U
-            </span>
-            <span className="text-sm font-semibold text-plum">Username</span>
-          </div>
+          {user ? (
+            <div className="group relative flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors duration-200 hover:bg-[#DAD7CD]">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-plum text-sm font-bold uppercase text-white">
+                {user.name? user.name[0] : 'U'}
+              </span>
+              <span className="max-w-[15rem] truncate text-sm font-semibold text-plum">
+                {user.name? user.name : user.email}
+              </span>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={goToLogin}
+              className="rounded-full bg-plum px-4 py-2 text-sm font-semibold text-white transition hover:bg-plum-dark"
+            >
+              Sign in
+            </button>
+          )}
         </div>
 
         <button
@@ -154,10 +170,24 @@ function Navbar() {
             ))}
           </div>
           <div className="mt-4 flex items-center gap-2 rounded-full px-3 py-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-plum text-sm font-bold uppercase text-white">
-              U
-            </span>
-            <span className="text-sm font-semibold text-plum">Username</span>
+            {user ? (
+              <>
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-plum text-sm font-bold uppercase text-white">
+                  {user.name?.[0] || user.email?.[0] || 'U'}
+                </span>
+                <span className="max-w-[15rem] truncate text-sm font-semibold text-plum">
+                  {user.name || user.email}
+                </span>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={goToLogin}
+                className="ml-auto rounded-full bg-plum px-4 py-2 text-sm font-semibold text-white transition hover:bg-plum-dark"
+              >
+                Sign in
+              </button>
+            )}
           </div>
         </div>
       )}

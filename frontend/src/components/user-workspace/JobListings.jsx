@@ -1,9 +1,5 @@
-const jobs = [
-  { title: 'UX Designer', meta: 'Design · Hybrid – Cambodia', status: 'Live', applicants: 47 },
-  { title: 'UX Designer', meta: 'Design · Hybrid – Cambodia', status: 'Live', applicants: 47 },
-  { title: 'UX Designer', meta: 'Design · Hybrid – Cambodia', status: 'Closed', applicants: 47 },
-  { title: 'UX Designer', meta: 'Design · Hybrid – Cambodia', status: 'Closed', applicants: 47 },
-];
+import { useEffect, useState } from 'react';
+import { listForms, getToken } from '../../services/api';
 
 function StatusPill({ status }) {
   const live = status === 'Live';
@@ -37,6 +33,27 @@ function UsersIcon() {
 }
 
 function JobListings() {
+  const [forms, setForms] = useState([]);
+
+  useEffect(() => {
+    if (!getToken()) return;
+    listForms()
+      .then((data) => {
+        if (Array.isArray(data)) setForms(data);
+      })
+      .catch(() => {});
+  }, []);
+
+  const jobs = forms.map((form) => ({
+    title: form.title,
+    meta:
+      (form.description && form.description.slice(0, 60)) ||
+      (form.requirements && form.requirements.slice(0, 60)) ||
+      'No description',
+    status: form.isOpen ? 'Live' : 'Closed',
+    applicants: form.submissionCount ?? 0,
+  }));
+
   return (
     <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-plum/10">
       <div className="flex items-center justify-between">
@@ -46,24 +63,28 @@ function JobListings() {
         </span>
       </div>
 
-      <ul className="mt-2 divide-y divide-plum/10">
-        {jobs.map((job, index) => (
-          <li key={`${job.title}-${index}`} className="flex items-center justify-between gap-3 py-4">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-[#344e41]">{job.title}</p>
-              <p className="mt-0.5 truncate text-xs text-stone-500">{job.meta}</p>
-            </div>
+      {jobs.length > 0 ? (
+        <ul className="mt-2 divide-y divide-plum/10">
+          {jobs.map((job, index) => (
+            <li key={`${job.title}-${index}`} className="flex items-center justify-between gap-3 py-4">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-[#344e41]">{job.title}</p>
+                <p className="mt-0.5 truncate text-xs text-stone-500">{job.meta}</p>
+              </div>
 
-            <div className="flex shrink-0 items-center gap-3">
-              <StatusPill status={job.status} />
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-stone-500">
-                <UsersIcon />
-                {job.applicants}
-              </span>
-            </div>
-          </li>
-        ))}
-      </ul>
+              <div className="flex shrink-0 items-center gap-3">
+                <StatusPill status={job.status} />
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-stone-500">
+                  <UsersIcon />
+                  {job.applicants}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-4 text-sm text-stone-500">No job listings yet.</p>
+      )}
     </section>
   );
 }

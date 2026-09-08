@@ -1,10 +1,14 @@
 
+import { useEffect, useState } from 'react';
+import { useNavigation } from '../../context/NavigationContext';
+import { listForms, getToken } from '../../services/api';
+
 const templates = [
   { name: 'New Form', icon: true },
   { name: 'Standard form', icon: false },
 ];
 
-const recentForms = [
+const fallbackForms = [
   { id: 'ux', title: 'UX Designer \u2014 Product Team', applicants: '84', status: 'Live' },
   { id: 'be', title: 'Backend Engineer', applicants: '37', status: 'Full' },
   { id: 'mi', title: 'Marketing Intern', applicants: '84', status: 'Paused' },
@@ -30,10 +34,12 @@ const statusDots = {
   Closed: 'bg-[#757575]',
 };
 
-function TemplateCard({ template }) {
+function TemplateCard({ template, onClick }) {
   return (
-    <div
-      className={`flex min-h-[10rem] flex-col overflow-hidden rounded-[20px] border-2 border-plum transition-transform duration-300 ease-out hover:scale-[1.05] ${
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex min-h-[10rem] cursor-pointer flex-col overflow-hidden rounded-[20px] border-2 border-plum text-left transition-transform duration-300 ease-out hover:scale-[1.05] ${
         template.icon ? 'bg-[#d9d9d9]' : 'bg-plum'
       }`}
     >
@@ -57,26 +63,30 @@ function TemplateCard({ template }) {
       <div className="rounded-b-[18px] border-t-2 border-plum bg-[#f2f0e8] px-4 py-3.5">
         <p className="text-center text-base font-semibold text-plum">{template.name}</p>
       </div>
-    </div>
+    </button>
   );
 }
 
-function Avatar({ children, className }) {
-  return (
-    <div className={`flex h-[36px] w-[36px] items-center justify-center rounded-full text-xs font-bold ${className}`}>
-      {children}
-    </div>
-  );
-}
-
-function RecentCard({ form }) {
-  const score = Math.min(Number(form.applicants) || 0, 100);
-  const words = form.title.split(/[^a-zA-Z]+/).filter(Boolean);
-  const a1 = words[0]?.[0]?.toUpperCase() || 'U';
-  const a2 = words[1]?.[0]?.toUpperCase() || 'S';
+function RecentCard({ form, onClick }) {
+  const applicants = form.applicants ?? form.submissionCount ?? 0;
+  const score = Math.min(Number(applicants) || 0, 100);
+  const status = form.isOpen ? 'Live' : 'Closed';
 
   return (
-    <article className="flex h-full w-[250px] shrink-0 flex-col rounded-[18px] bg-plum p-5 transition-transform duration-300 ease-out hover:scale-[1.05]">
+    <article
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className={`flex h-full w-[250px] shrink-0 flex-col rounded-[18px] bg-plum p-5 transition-transform duration-300 ease-out hover:scale-[1.05] ${
+        onClick ? 'cursor-pointer' : ''
+      }`}
+    >
       <div className="flex items-center justify-end">
         <button
           type="button"
@@ -95,20 +105,13 @@ function RecentCard({ form }) {
         {form.title}
       </h3>
 
-      <p className="mt-1.5 text-[13px] text-[#F2F0E8]">{form.applicants} applicants</p>
+      <p className="mt-1.5 text-[13px] text-[#F2F0E8]">{applicants} applicants</p>
 
       <div className="mt-auto flex items-center justify-between gap-2 pt-10">
-        <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10.5px] font-semibold ${statusStyles[form.status]}`}>
-          <span className={`h-1.5 w-1.5 rounded-full ${statusDots[form.status]}`} />
-          {form.status}
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10.5px] font-semibold ${statusStyles[status] ?? statusStyles.Live}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${statusDots[status] ?? statusDots.Live}`} />
+          {status}
         </span>
-        <div className="relative flex h-[48px] w-[76px]">
-          <Avatar className="absolute left-0 top-[6px] z-[1] bg-gold text-plum">{a1}</Avatar>
-          <Avatar className="absolute left-[18px] top-[6px] z-[2] bg-teal text-[#F2F0E8]">{a2}</Avatar>
-          <div className="absolute left-[36px] top-[6px] z-[3] flex h-9 w-9 items-center justify-center rounded-full border-2 border-plum bg-[#F2F0E8] text-xs font-bold text-plum">
-            +{form.applicants}
-          </div>
-        </div>
       </div>
 
       <div className="mt-3">
@@ -123,6 +126,23 @@ function RecentCard({ form }) {
 }
 
 function Forms() {
+  const { goToCreateForm, goToLogin, goToFormView } = useNavigation();
+  const [recentForms, setRecentForms] = useState(fallbackForms);
+
+  useEffect(() => {
+    if (!getToken()) return;
+    listForms()
+      .then((forms) => {
+        if (Array.isArray(forms) && forms.length > 0) setRecentForms(forms);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleNewForm = () => {
+    if (getToken()) goToCreateForm();
+    else goToLogin();
+  };
+
   return (
     <section id="forms" className="bg-[#fffef9] py-16 lg:py-24">
       <div className="mx-auto max-w-site px-6 lg:px-8">
@@ -135,23 +155,35 @@ function Forms() {
 
           <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {templates.map((t) => (
-              
-                <TemplateCard key={t.name} template={t} />
+              <TemplateCard
+                key={t.name}
+                template={t}
+                onClick={t.icon ? handleNewForm : handleNewForm}
+              />
             ))}
           </div>
 
           <div className="mt-14">
             <div className="flex items-center justify-between">
               <h3 className="font-sans text-2xl font-bold text-plum">Recent forms</h3>
-              <span className="rounded-full bg-plum px-3 py-1 text-xs font-bold text-white">9 total</span>
+              <span className="rounded-full bg-plum px-3 py-1 text-xs font-bold text-white">
+                {recentForms.length} total
+              </span>
             </div>
-            <div className="mt-6 flex gap-6 overflow-x-auto px-3 pb-4 pt-2">
-              {recentForms.map((form) => (
-                <div key={form.id} className="w-[250px] shrink-0">
-                  <RecentCard form={form} />
-                </div>
-              ))}
-            </div>
+            {recentForms.length > 0 ? (
+              <div className="mt-6 flex gap-6 overflow-x-auto px-3 pb-4 pt-2">
+                {recentForms.map((form) => (
+                  <div key={form.id} className="w-[250px] shrink-0">
+                    <RecentCard
+                      form={form}
+                      onClick={form.submissionCount !== undefined ? () => goToFormView(form.id) : undefined}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-6 text-sm text-stone-500">No forms yet. Create your first form to get started.</p>
+            )}
           </div>
         </div>
       </div>
