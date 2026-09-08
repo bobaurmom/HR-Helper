@@ -16,13 +16,13 @@ export class EmailController {
         @Body('templateName') templateName: string,
         @Body('context') context: Record<string, any>,
     ) {
-        const userAccessToken = req.user.googleAccessToken;
-        if (!userAccessToken) {
-            throw new UnauthorizedException('Google access token is missing. Please sign in again.');
+        const userId = req.user?.id;
+        if (!userId) {
+            throw new UnauthorizedException('User ID missing from token session.');
         }
 
         return await this.emailService.sendTemplatedEmail(
-            userAccessToken, 
+            Number(userId), 
             to, 
             subject, 
             templateName, 

@@ -12,23 +12,24 @@ export class AuthService {
 
     async validateGoogleUser(
         details: { email: string; name: string; avatar?: string; googleId: string },
-        googleAccessToken: string,
+        googleRefreshToken?: string, 
     ) {
-        let user = await this.prisma.user.findUnique({
+        const user = await this.prisma.user.upsert({
             where: { email: details.email },
+            update: {
+                name: details.name,
+                googleId: details.googleId,
+                ...(googleRefreshToken && { googleRefreshToken }),
+            },
+            create: {
+                email: details.email,
+                name: details.name,
+                googleId: details.googleId,
+                googleRefreshToken,
+            },
         });
 
-        if (!user) {
-            user = await this.prisma.user.create({
-                data: {
-                    email: details.email,
-                    name: details.name,
-                    googleId: details.googleId,
-                },
-            });
-        }
-
-        const payload = { id: user.id, email: user.email, role: 'HR', googleAccessToken };
+        const payload = { id: user.id, email: user.email, role: 'HR' };
         const token = this.jwtService.sign(payload);
 
         return { user, accessToken: token };
