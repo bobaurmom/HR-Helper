@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { useNavigation } from '../context/NavigationContext';
 import { getForm } from '../services/api';
 
@@ -50,7 +51,8 @@ function FieldRow({ field }) {
   );
 }
 
-function FormView({ formId }) {
+function FormView() {
+  const { formId } = useParams();
   const { goToHR } = useNavigation();
   const [form, setForm] = useState(null);
   const [error, setError] = useState(null);

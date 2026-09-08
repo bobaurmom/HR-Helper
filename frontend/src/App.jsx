@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect } from 'react';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import HRPage from './pages/HRPage';
 import Authentication from './pages/Authentication';
@@ -6,17 +7,11 @@ import { NavigationProvider } from './context/NavigationContext';
 import User_Workspace from './pages/User_Workspace';
 import CreateForm from './pages/CreateForm';
 import FormView from './pages/FormView';
-import { setToken } from './services/api';
+import { getToken, setToken } from './services/api';
 
-function App() {
-  const [view, setView] = useState(() => {
-    const saved = localStorage.getItem('hr-helper:view');
-    const valid = ['landing', 'hr', 'workspace'];
-    return valid.includes(saved) ? saved : 'landing';
-  });
-  const [authOpen, setAuthOpen] = useState(false);
-  const [authMode, setAuthMode] = useState('login');
-  const [formViewId, setFormViewId] = useState(null);
+function TokenHandler() {
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -27,67 +22,61 @@ function App() {
       const qs = params.toString();
       const newUrl = window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash;
       window.history.replaceState({}, '', newUrl);
-      setView('hr');
-      localStorage.setItem('hr-helper:view', 'hr');
+      navigate('/hr', { replace: true });
     }
-  }, []);
+  }, [location, navigate]);
 
-  const goToLogin = useCallback(() => {
-    setAuthMode('login');
-    setAuthOpen(true);
-  }, []);
+  return null;
+}
 
-  const goToSignup = useCallback(() => {
-    setAuthMode('signup');
-    setAuthOpen(true);
-  }, []);
+function RequireAuth({ children }) {
+  if (!getToken()) return <Navigate to="/login" replace />;
+  return children;
+}
 
-  const closeAuth = useCallback(() => setAuthOpen(false), []);
-
-  const goToHR = useCallback(() => {
-    setAuthOpen(false);
-    setView('hr');
-    localStorage.setItem('hr-helper:view', 'hr');
-  }, []);
-
-  const goToWorkspace = useCallback(() => {
-    setAuthOpen(false);
-    setView('workspace');
-    localStorage.setItem('hr-helper:view', 'workspace');
-  }, []);
-
-  const goToLanding = useCallback(() => {
-    setAuthOpen(false);
-    setView('landing');
-    localStorage.setItem('hr-helper:view', 'landing');
-  }, []);
-
-  const goToCreateForm = useCallback(() => {
-    setAuthOpen(false);
-    setView('create-form');
-    localStorage.setItem('hr-helper:view', 'create-form');
-  }, []);
-
-  const goToFormView = useCallback((formId) => {
-    setAuthOpen(false);
-    setFormViewId(formId);
-    setView('form-view');
-  }, []);
-
-  const navigation = useMemo(
-    () => ({ goToLogin, goToSignup, goToHR, goToWorkspace, goToLanding, goToCreateForm, goToFormView }),
-    [goToLogin, goToSignup, goToHR, goToWorkspace, goToLanding, goToCreateForm, goToFormView]
-  );
-
+function App() {
   return (
-    <NavigationProvider value={navigation}>
-      {view === 'landing' && <LandingPage />}
-      {view === 'hr' && <HRPage />}
-      {view === 'workspace' && <User_Workspace />}
-      {view === 'create-form' && <CreateForm />}
-      {view === 'form-view' && formViewId && <FormView formId={formViewId} />}
-      <Authentication open={authOpen} initialMode={authMode} onClose={closeAuth} />
+    <NavigationProvider>
+      <TokenHandler />
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Authentication />} />
+        <Route
+          path="/hr"
+          element={
+            <RequireAuth>
+              <HRPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/hr/forms/new"
+          element={
+            <RequireAuth>
+              <CreateForm />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/hr/forms/:formId"
+          element={
+            <RequireAuth>
+              <FormView />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/workspace"
+          element={
+            <RequireAuth>
+              <User_Workspace />
+            </RequireAuth>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </NavigationProvider>
   );
 }
+
 export default App;
