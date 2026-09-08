@@ -21,7 +21,7 @@ export class AuthController {
             httpOnly: true,
             sameSite: 'lax',
             secure: process.env.NODE_ENV === 'production',
-            maxAge: 2 * 60 * 60 * 1000,
+            maxAge: 8 * 60 * 60 * 1000,
         });
         return res.redirect(`${process.env.FRONTEND_URL}/home`);
     }
