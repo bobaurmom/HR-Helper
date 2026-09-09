@@ -69,6 +69,7 @@ model Field {
   label     String
   type      FieldType
   required  Boolean  @default(false)
+  order     Int      @default(0)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -83,6 +84,7 @@ model Option {
   id        Int      @id @default(autoincrement())
   fieldId   Int      @map("field_id")
   value     String
+  order     Int      @default(0)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
