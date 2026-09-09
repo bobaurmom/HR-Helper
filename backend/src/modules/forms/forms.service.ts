@@ -8,6 +8,11 @@ export class FormsService {
   constructor(private prisma: PrismaService) {}
 
   async create(userId: number, dto: CreateFormDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(`User does not exist`);
+    }
+
     return this.prisma.form.create({
       data: {
         title: dto.title,
@@ -129,6 +134,11 @@ export class FormsService {
   }
 
   async copy(id: string, userId: number) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(`User does not exist`);
+    }
+
     const originalForm = await this.prisma.form.findUnique({
         where: { id },
         include: {

@@ -16,6 +16,12 @@ enum FieldType {
   SELECT
 }
 
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
@@ -95,6 +101,9 @@ model FormSubmission {
   id        Int      @id @default(autoincrement())
   formId    String   @map("form_id")
   cvFileId  Int      @unique @map("cv_file_id")
+  status    SubmissionStatus @default(PENDING)
+  cvScore   Float?           @map("cv_score")
+  email     String
   createdAt DateTime @default(now()) @map("created_at")
 
   form      Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
