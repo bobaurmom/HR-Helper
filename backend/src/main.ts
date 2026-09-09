@@ -2,9 +2,15 @@ import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { AppModule } from "./app.module";
 import { ValidationPipe } from "@nestjs/common";
+import cookieParser = require('cookie-parser');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.use(cookieParser());
+  app.enableCors({
+    origin: process.env.FRONTEND_URL ?? 'http://localhost:5173',
+    credentials: true,
+  });
   const swaggerConfig = new DocumentBuilder()
     .setTitle("HR Helper API")
     .setDescription("API for the HR Helper application")
@@ -18,7 +24,6 @@ async function bootstrap() {
   );
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup("docs", app, document);
-  app.enableCors({origin: "http://localhost:5173"});
   await app.listen(process.env.PORT ?? 3000);
 }
 

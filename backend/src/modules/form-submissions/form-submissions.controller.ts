@@ -36,7 +36,6 @@ export class FormSubmissionsController {
     return this.submissionsService.findOne(Number(submissionId), req.user.id);
   }
 
-
   @Delete(':submissionId')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)

@@ -43,7 +43,11 @@ The application requires that all CVs are uploaded via a pre-signed S3 URL to en
 ### 2. Submit the Form
 Once you have the `cvFileId`, submit the form responses.
 
+<<<<<<< Updated upstream
 - **Endpoint**: `POST /forms/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11/submissions`
+=======
+- **Endpoint**: `POST /form-submissions/:formId/submit`
+>>>>>>> Stashed changes
 - **Request Body**:
   ```json
   {

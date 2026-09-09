@@ -1,5 +1,6 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useEffect, useRef, useState } from 'react';
 import { useNavigation } from '../../context/NavigationContext';
+import { listForms } from '../../services/api';
 import ConfirmModal from './ConfirmModal';
 
 function Hero() {
@@ -7,13 +8,9 @@ function Hero() {
   const [authHovered, setAuthHovered] = useState('trial');
   const [authPill, setAuthPill] = useState({ x: 0, w: 0, ready: false });
   const [showConfirm, setShowConfirm] = useState(false);
+  const [latestForm, setLatestForm] = useState(null);
   const trialRef = useRef(null);
   const viewRef = useRef(null);
-
-  const moveAuthPill = (ref) => {
-    if (!ref.current) return;
-    setAuthPill({ x: ref.current.offsetLeft, w: ref.current.offsetWidth, ready: true });
-  };
 
   useLayoutEffect(() => {
     moveAuthPill(trialRef);
@@ -21,6 +18,19 @@ function Hero() {
     window.addEventListener('resize', remeasure);
     return () => window.removeEventListener('resize', remeasure);
   }, []);
+
+  useEffect(() => {
+    listForms()
+      .then((forms) => {
+        if (Array.isArray(forms) && forms.length > 0) setLatestForm(forms[0]);
+      })
+      .catch(() => {});
+  }, []);
+
+  const moveAuthPill = (ref) => {
+    if (!ref.current) return;
+    setAuthPill({ x: ref.current.offsetLeft, w: ref.current.offsetWidth, ready: true });
+  };
 
   return (
     <section id="top" className="bg-[#fffef9] pt-32 md:pt-40">
@@ -129,8 +139,12 @@ function Hero() {
             <div className="absolute inset-0 rotate-3 rounded-[2rem] bg-plum/10" aria-hidden="true" />
             <div className="relative rounded-[2rem] border border-plum/10 bg-white p-6 shadow-2xl shadow-plum/20 sm:p-8">
               <p className="text-sm font-bold uppercase tracking-widest text-teal">Recent forms</p>
-              <h3 className="mt-2 font-sans text-2xl font-bold text-plum">UX Designer &mdash; Product Team</h3>
-              <p className="mt-1 text-lg font-semibold text-plum">84 applicants</p>
+              <h3 className="mt-2 font-sans text-2xl font-bold text-plum">
+                {latestForm ? latestForm.title : 'No form yet'}
+              </h3>
+              <p className="mt-1 text-lg font-semibold text-plum">
+                {latestForm ? `${latestForm.submissionCount ?? 0} applicants` : 'Create your first form'}
+              </p>
               <div className="mt-6 space-y-3">
                 {['Blank Form', 'Standard form'].map((name) => (
                   <div key={name} className="flex items-center justify-between rounded-xl border border-plum/10 bg-[#f2f0e8] px-4 py-3">
@@ -140,10 +154,18 @@ function Hero() {
                 ))}
               </div>
               <div className="mt-6 flex items-center justify-between rounded-xl bg-plum px-4 py-3">
-                <span className="text-sm font-semibold text-white">New form ready</span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#a7eda7]/60 px-3 py-1 text-xs font-medium text-[#0d6921]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#0d6921]" />
-                  Live
+                <span className="text-sm font-semibold text-white">
+                  {latestForm ? (latestForm.isOpen ? 'Now accepting responses' : 'Form closed') : 'New form ready'}
+                </span>
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
+                    latestForm?.isOpen ? 'bg-[#a7eda7]/60 text-[#0d6921]' : 'bg-white/60 text-plum'
+                  }`}
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${latestForm?.isOpen ? 'bg-[#0d6921]' : 'bg-plum'}`}
+                  />
+                  {latestForm ? (latestForm.isOpen ? 'Live' : 'Closed') : 'Live'}
                 </span>
               </div>
             </div>

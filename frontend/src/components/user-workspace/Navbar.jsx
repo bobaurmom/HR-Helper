@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigation } from '../../context/NavigationContext';
+import { useAuth } from '../../context/AuthContext';
 
 const DURATION = 450;
 
@@ -190,7 +191,8 @@ function NavItem({ label, icon: Icon, active, onClick }) {
 }
 
 function SidebarContent({ active, setActive, onNavigate }) {
-  const { goToHR } = useNavigation();
+  const { goToLanding } = useNavigation();
+  const { logout } = useAuth();
 
   const select = (label) => {
     setActive(label);
@@ -241,9 +243,10 @@ function SidebarContent({ active, setActive, onNavigate }) {
                   label={item.label}
                   icon={item.icon}
                   active={false}
-                  onClick={() => {
+                  onClick={async () => {
                     onNavigate?.();
-                    goToHR();
+                    await logout();
+                    goToLanding();
                   }}
                 />
               </li>

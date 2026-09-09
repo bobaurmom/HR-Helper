@@ -1,23 +1,11 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigation } from '../../context/NavigationContext';
-import { listForms, getToken } from '../../services/api';
+import { listForms, deleteForm } from '../../services/api';
 
 const templates = [
   { name: 'New Form', icon: true },
   { name: 'Standard form', icon: false },
-];
-
-const fallbackForms = [
-  { id: 'ux', title: 'UX Designer \u2014 Product Team', applicants: '84', status: 'Live' },
-  { id: 'be', title: 'Backend Engineer', applicants: '37', status: 'Full' },
-  { id: 'mi', title: 'Marketing Intern', applicants: '84', status: 'Paused' },
-  { id: 'sa', title: 'Sales Associate', applicants: '111', status: 'Closed' },
-  { id: 'da', title: 'Data Analyst', applicants: '52', status: 'Live' },
-  { id: 'po', title: 'Product Owner', applicants: '23', status: 'Full' },
-  { id: 'hr', title: 'HR Coordinator', applicants: '18', status: 'Paused' },
-  { id: 'qa', title: 'QA Engineer', applicants: '65', status: 'Live' },
-  { id: 'fd', title: 'Frontend Developer', applicants: '97', status: 'Closed' },
 ];
 
 const statusStyles = {
@@ -67,38 +55,105 @@ function TemplateCard({ template, onClick }) {
   );
 }
 
-function RecentCard({ form, onClick }) {
+function RecentCard({ form, onView, onEdit, onDelete, onCopyLink }) {
   const applicants = form.applicants ?? form.submissionCount ?? 0;
   const score = Math.min(Number(applicants) || 0, 100);
   const status = form.isOpen ? 'Live' : 'Closed';
 
   return (
     <article
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onClick={onClick}
+      role={onCopyLink ? 'button' : undefined}
+      tabIndex={onCopyLink ? 0 : undefined}
+      onClick={onCopyLink}
       onKeyDown={(e) => {
-        if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+        if (onCopyLink && (e.key === 'Enter' || e.key === ' ')) {
           e.preventDefault();
-          onClick();
+          onCopyLink();
         }
       }}
+      title={onCopyLink ? 'Click to copy application link' : undefined}
       className={`flex h-full w-[250px] shrink-0 flex-col rounded-[18px] bg-plum p-5 transition-transform duration-300 ease-out hover:scale-[1.05] ${
-        onClick ? 'cursor-pointer' : ''
+        onCopyLink ? 'cursor-pointer' : ''
       }`}
     >
       <div className="flex items-center justify-end">
-        <button
-          type="button"
-          aria-label="More options"
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-gold text-plum transition hover:bg-gold/80"
-        >
-          <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden="true">
-            <circle cx="5" cy="12" r="1.6" />
-            <circle cx="12" cy="12" r="1.6" />
-            <circle cx="19" cy="12" r="1.6" />
-          </svg>
-        </button>
+        {(onView || onEdit || onDelete || onCopyLink) && (
+          <div
+            className="popup"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              aria-label="Form actions"
+              aria-haspopup="true"
+              className="burger cursor-pointer"
+            >
+              <span />
+              <span />
+              <span />
+            </button>
+
+            <nav className="popup-window" aria-label="Form actions">
+              <legend>Form actions</legend>
+              <ul>
+                {onView && (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onView();
+                      }}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
+                        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                      View form
+                    </button>
+                  </li>
+                )}
+                {onView && onEdit && <hr />}
+                {onEdit && (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit();
+                      }}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                      </svg>
+                      Edit form
+                    </button>
+                  </li>
+                )}
+                {onDelete && <hr />}
+                {onDelete && (
+                  <li>
+                    <button
+                      type="button"
+                      className="popup-danger"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete();
+                      }}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true">
+                        <path strokeLinecap="round" d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" />
+                      </svg>
+                      Delete form
+                    </button>
+                  </li>
+                )}
+              </ul>
+            </nav>
+          </div>
+        )}
       </div>
 
       <h3 className="mt-6 font-sans text-[17px] font-black leading-tight text-[#F2F0E8]">
@@ -125,22 +180,123 @@ function RecentCard({ form, onClick }) {
   );
 }
 
+function DeleteFormModal({ title, error, deleting, onCancel, onConfirm }) {
+  const [confirmText, setConfirmText] = useState('');
+  const confirmed = confirmText.trim().toLowerCase().startsWith('remove');
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-plum-dark/50 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Delete form"
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-sm rounded-[20px] bg-[#f2efe7] p-6 shadow-2xl ring-1 ring-plum/10"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="font-sans text-xl font-bold text-plum">Delete form?</h3>
+        <p className="mt-2 text-sm text-stone-600">
+          This will permanently delete{' '}
+          <span className="font-semibold text-plum">{title}</span>.
+        </p>
+        <p className="mt-3 text-sm font-semibold text-red-600">
+          Type "Remove" to confirm deletion.
+        </p>
+        <input
+          type="text"
+          value={confirmText}
+          onChange={(e) => setConfirmText(e.target.value)}
+          placeholder="Type 'Remove' to confirm"
+          autoFocus
+          className="mt-3 w-full rounded-[12px] border border-red-300 bg-white px-3 py-2 text-sm text-stone-800 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-200"
+        />
+        {error && <p className="mt-3 text-sm font-medium text-red-600">{error}</p>}
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={deleting}
+            className="rounded-full border border-plum/30 px-4 py-2 text-sm font-semibold text-plum transition hover:bg-plum hover:text-white disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={!confirmed || deleting}
+            className="rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {deleting ? 'Deleting...' : 'Delete'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Forms() {
-  const { goToCreateForm, goToLogin, goToFormView } = useNavigation();
-  const [recentForms, setRecentForms] = useState(fallbackForms);
+  const { goToCreateForm, goToLogin, goToFormView, goToEditForm } = useNavigation();
+  const [recentForms, setRecentForms] = useState([]);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(null);
+  const copyTimer = useRef(null);
 
   useEffect(() => {
-    if (!getToken()) return;
     listForms()
       .then((forms) => {
-        if (Array.isArray(forms) && forms.length > 0) setRecentForms(forms);
+        if (Array.isArray(forms)) setRecentForms(forms);
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (err.status === 401) goToLogin();
+      });
   }, []);
 
-  const handleNewForm = () => {
-    if (getToken()) goToCreateForm();
-    else goToLogin();
+  const handleNewForm = (template) => {
+    goToCreateForm(template);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget || deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteForm(deleteTarget.id);
+      setRecentForms((prev) => prev.filter((f) => f.id !== deleteTarget.id));
+      setDeleteTarget(null);
+    } catch (err) {
+      if (err.status === 401) {
+        goToLogin();
+      } else {
+        setDeleteError(err.message || 'Failed to delete the form.');
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const copyLink = async (form) => {
+    const url = `${window.location.origin}/apply/${form.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = url;
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+      } catch {
+        /* ignore */
+      }
+      document.body.removeChild(textarea);
+    }
+    setCopiedLink(form.title);
+    if (copyTimer.current) window.clearTimeout(copyTimer.current);
+    copyTimer.current = window.setTimeout(() => setCopiedLink(null), 2500);
   };
 
   return (
@@ -158,7 +314,7 @@ function Forms() {
               <TemplateCard
                 key={t.name}
                 template={t}
-                onClick={t.icon ? handleNewForm : handleNewForm}
+                onClick={() => handleNewForm(t.icon ? 'blank' : 'standard')}
               />
             ))}
           </div>
@@ -176,7 +332,10 @@ function Forms() {
                   <div key={form.id} className="w-[250px] shrink-0">
                     <RecentCard
                       form={form}
-                      onClick={form.submissionCount !== undefined ? () => goToFormView(form.id) : undefined}
+                      onView={() => goToFormView(form.id)}
+                      onEdit={(form.submissionCount ?? 0) === 0 ? () => goToEditForm(form.id) : undefined}
+                      onDelete={() => setDeleteTarget(form)}
+                      onCopyLink={() => copyLink(form)}
                     />
                   </div>
                 ))}
@@ -187,6 +346,25 @@ function Forms() {
           </div>
         </div>
       </div>
+
+      {deleteTarget && (
+        <DeleteFormModal
+          title={deleteTarget.title}
+          error={deleteError}
+          deleting={deleting}
+          onCancel={() => { setDeleteTarget(null); setDeleteError(null); }}
+          onConfirm={confirmDelete}
+        />
+      )}
+
+      {copiedLink && (
+        <div className="fixed bottom-6 right-6 z-[120] flex items-center gap-2 rounded-full bg-plum py-3 pl-5 pr-6 text-sm font-semibold text-white shadow-2xl shadow-plum/30">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-gold">
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+          Link copied! Share &ldquo;{copiedLink}&rdquo; with applicants.
+        </div>
+      )}
     </section>
   );
 }

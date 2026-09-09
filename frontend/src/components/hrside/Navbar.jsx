@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { useNavigation } from '../../context/NavigationContext';
 import ConfirmModal from './ConfirmModal';
-import { getUser } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 const links = [
   { label: 'Home', href: '#top' },
@@ -25,16 +25,12 @@ function Logo() {
 
 function Navbar() {
   const { goToWorkspace, goToLogin } = useNavigation();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [rendered, setRendered] = useState(false);
   const [visible, setVisible] = useState(false);
   const [pill, setPill] = useState({ x: 0, w: 0, visible: false });
   const [showConfirm, setShowConfirm] = useState(false);
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    setUser(getUser());
-  }, []);
 
   useEffect(() => {
     if (open) {

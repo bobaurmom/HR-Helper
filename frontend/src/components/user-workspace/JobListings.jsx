@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { listForms, getToken } from '../../services/api';
+import { listForms } from '../../services/api';
 
 function StatusPill({ status }) {
   const live = status === 'Live';
@@ -36,7 +36,6 @@ function JobListings() {
   const [forms, setForms] = useState([]);
 
   useEffect(() => {
-    if (!getToken()) return;
     listForms()
       .then((data) => {
         if (Array.isArray(data)) setForms(data);

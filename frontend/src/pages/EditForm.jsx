@@ -1,16 +1,21 @@
-import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { useNavigation } from '../context/NavigationContext';
+import { getForm } from '../services/api';
 import FormBuilder from '../components/form-builder/FormBuilder';
 
-function CreateForm() {
+function EditForm() {
+  const { formId } = useParams();
   const { goToHR } = useNavigation();
-  const location = useLocation();
-  const template = location.state?.template === 'standard' ? 'standard' : 'blank';
+  const [form, setForm] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+    if (!formId) return;
+    getForm(formId)
+      .then((data) => setForm(data))
+      .catch((err) => setError(err.message || 'Failed to load the form.'));
+  }, [formId]);
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f2efe7] font-sans text-stone-800 antialiased">
@@ -36,41 +41,23 @@ function CreateForm() {
             <span aria-hidden="true">&larr;</span> All hiring form
           </button>
 
-          <FormBuilder template={template} />
+          {error && (
+            <div className="rounded-[20px] bg-red-100 px-5 py-4 text-sm font-semibold text-red-600">
+              {error}
+            </div>
+          )}
+
+          {!form && !error && (
+            <div className="rounded-[20px] bg-white/60 px-5 py-6 text-sm text-stone-500 ring-1 ring-plum/10">
+              Loading form...
+            </div>
+          )}
+
+          {form && <FormBuilder initialForm={form} />}
         </div>
       </main>
-
-      <footer className="mt-16 bg-plum-dark py-10 text-[#f2efe7]">
-        <div className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-8 px-6 md:grid-cols-4 lg:px-8">
-          <div>
-            <p className="text-lg font-bold">HiOring</p>
-            <p className="mt-2 text-xs text-white/60">Hiring made simple.</p>
-          </div>
-          <div>
-            <p className="text-sm font-semibold">Quick Link</p>
-            <ul className="mt-2 space-y-1 text-xs text-white/70">
-              <li>Home</li>
-              <li>Hiring form</li>
-              <li>Workspace</li>
-            </ul>
-          </div>
-          <div>
-            <p className="text-sm font-semibold">Get our app</p>
-            <ul className="mt-2 space-y-1 text-xs text-white/70">
-              <li>iOS</li>
-              <li>Android</li>
-            </ul>
-          </div>
-          <div>
-            <p className="text-sm font-semibold">Contact Us</p>
-            <ul className="mt-2 space-y-1 text-xs text-white/70">
-              <li>support@hioring.com</li>
-            </ul>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
 
-export default CreateForm;
+export default EditForm;

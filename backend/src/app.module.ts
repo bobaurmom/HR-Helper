@@ -6,9 +6,10 @@ import { FormSubmissionsModule } from './modules/form-submissions/form-submissio
 import { HealthController } from './common/health.controller';
 import { AuthModule } from './modules/auth/auth.module';
 import { ConfigModule } from '@nestjs/config/dist/config.module';
+import { EmailModule } from './modules/email/email.module';
 
 @Module({
-  imports: [PrismaModule, FilesModule, AuthModule, FormsModule, FormSubmissionsModule, ConfigModule.forRoot({ isGlobal: true })],
+  imports: [PrismaModule, FilesModule, AuthModule, FormsModule, FormSubmissionsModule, ConfigModule.forRoot({ isGlobal: true }), EmailModule],
   controllers: [HealthController],
 })
 export class AppModule {}

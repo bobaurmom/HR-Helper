@@ -14,7 +14,8 @@ export function NavigationProvider({ children }) {
       goToHR: () => navigate('/hr'),
       goToWorkspace: () => navigate('/workspace'),
       goToLanding: () => navigate('/'),
-      goToCreateForm: () => navigate('/hr/forms/new'),
+      goToCreateForm: (template) => navigate('/hr/forms/new', { state: { template } }),
+      goToEditForm: (formId) => navigate(`/hr/forms/${formId}/edit`),
       goToFormView: (formId) => navigate(`/hr/forms/${formId}`),
     }),
     [navigate]
