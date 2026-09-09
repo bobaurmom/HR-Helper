@@ -5,10 +5,12 @@ import { ValidationPipe } from "@nestjs/common";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.setGlobalPrefix("api");
   const swaggerConfig = new DocumentBuilder()
     .setTitle("HR Helper API")
     .setDescription("API for the HR Helper application")
     .setVersion("0.1.0")
+    .addBearerAuth()
     .build();
   app.useGlobalPipes(
     new ValidationPipe({

@@ -42,6 +42,7 @@ export class FormSubmissionsService {
       const submission = await tx.formSubmission.create({
         data: {
           formId: formId,
+          email: dto.email,
           cvFileId: dto.cvFileId,
           answers: {
             create: dto.answers.map((answer) => ({
@@ -122,5 +123,58 @@ export class FormSubmissionsService {
     return this.prisma.formSubmission.delete({
       where: { id: submissionId },
     });
+  }
+
+  async updateStatus(formId: string, submissionId: number, status: import('@prisma/client').SubmissionStatus, userId: number) {
+    const submission = await this.prisma.formSubmission.findFirst({
+      where: { id: submissionId, formId },
+      include: { form: true },
+    });
+
+    if (!submission) {
+      throw new NotFoundException('Submission not found');
+    }
+
+    if (submission.form.userId !== userId) {
+      throw new ForbiddenException('You do not have permission to update this submission');
+    }
+
+    return this.prisma.formSubmission.update({
+      where: { id: submissionId },
+      data: { status },
+      include: {
+        cvFile: true,
+        answers: true,
+      },
+    });
+  }
+
+  async bulkUpdateStatus(formId: string, submissionIds: number[], status: import('@prisma/client').SubmissionStatus, userId: number) {
+    const form = await this.prisma.form.findUnique({ where: { id: formId } });
+    if (!form || form.userId !== userId) {
+      throw new ForbiddenException('You do not have permission to update submissions for this form');
+    }
+
+    // Verify all submissions belong to the form
+    const submissions = await this.prisma.formSubmission.findMany({
+      where: {
+        id: { in: submissionIds },
+        formId,
+      },
+    });
+
+    if (submissions.length !== submissionIds.length) {
+      throw new BadRequestException('Some submissions were not found or do not belong to this form');
+    }
+
+    await this.prisma.formSubmission.updateMany({
+      where: {
+        id: { in: submissionIds },
+        formId,
+      },
+      data: { status },
+    });
+
+    return { count: submissionIds.length };
   }
 }
