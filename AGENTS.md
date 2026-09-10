@@ -11,7 +11,8 @@
   - Flow: `Controller` (Input Validation) -> `Service` (Business Logic) -> `DTOs` (Response Formatting).
   - Use constructor injection for services.
   - Document controllers with Swagger (`@ApiTags`, `@ApiOperation`, `@ApiResponse`).
-  - Follow naming convention: `<action><Name>Dto.ts` for inputs, `<Name>ResponseDto.ts` for outputs.
+  - **File Naming**: Use `kebab-case` with type suffixes for all files (e.g., `feature.controller.ts`, `submit-form.dto.ts`).
+  - **Class Naming**: Follow naming convention: `<Action><Name>Dto` for input classes, `<Name>ResponseDto` for output classes.
 - **Prisma Schema**:
   - Must maintain **3rd Normal Form (3NF)** for relational integrity.
   - Schema changes MUST be validated using `docker compose exec backend npx prisma validate`.
@@ -31,4 +32,4 @@
 - **Database Access**: Always perform Prisma commands (validate/generate/migrate) inside the docker container:
   `docker compose exec backend npx prisma <command>`
 - **Authentication**: JWT authentication is handled by `JwtAuthGuard` in `backend/src/modules/auth/auth.middleware.ts`.
-- **Anonymous Submissions**: Submissions are anonymous but must attach a CV stored in a private bucket.
+- **Anonymous Submissions**: Submissions are anonymous but must attach a CV stored in a private bucket, and require an email address for contact.
