@@ -3,12 +3,13 @@ import { PrismaModule } from './prisma/prisma.module';
 import { FilesModule } from './modules/files/files.module';
 import { FormsModule } from './modules/forms/forms.module';
 import { FormSubmissionsModule } from './modules/form-submissions/form-submissions.module';
+import { EmailModule } from './modules/email/email.module';
 import { HealthController } from './common/health.controller';
 import { AuthModule } from './modules/auth/auth.module';
 import { ConfigModule } from '@nestjs/config/dist/config.module';
 
 @Module({
-  imports: [PrismaModule, FilesModule, AuthModule, FormsModule, FormSubmissionsModule, ConfigModule.forRoot({ isGlobal: true })],
+  imports: [PrismaModule, FilesModule, AuthModule, FormsModule, FormSubmissionsModule, EmailModule, ConfigModule.forRoot({ isGlobal: true })],
   controllers: [HealthController],
 })
 export class AppModule {}
