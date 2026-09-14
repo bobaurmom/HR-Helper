@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useNavigation } from '../context/NavigationContext';
 import { getForm } from '../services/api';
+import { formatDateTime, getFormStatus, getNextStatusTime } from '../utils/forms';
+import { useNow } from '../hooks/useNow';
 
 const sortByOrder = (items) =>
   [...items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -114,6 +116,8 @@ function FormView() {
   }, [formId]);
 
   const fieldCount = form?.fields?.length ?? 0;
+  const now = useNow(getNextStatusTime(form));
+  const status = getFormStatus(form, now);
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f2efe7] font-sans text-stone-800 antialiased">
@@ -165,6 +169,32 @@ function FormView() {
                 <span className="shrink-0 rounded-full bg-plum px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
                   Preview
                 </span>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-stone-500">
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 ${
+                    status === 'Live'
+                      ? 'bg-[#a7eda7] text-[#0d6921]'
+                      : status === 'Scheduled'
+                        ? 'bg-gold text-plum'
+                        : 'bg-white text-[#757575] ring-1 ring-plum/10'
+                  }`}
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      status === 'Live'
+                        ? 'bg-[#0d6921]'
+                        : status === 'Scheduled'
+                          ? 'bg-plum'
+                          : 'bg-[#757575]'
+                    }`}
+                  />
+                  {status}
+                </span>
+                {form.closeAt && <span>Close at: {formatDateTime(form.closeAt)}</span>}
+                {status === 'Scheduled' && form.openAt && (
+                  <span>Opens at: {formatDateTime(form.openAt)}</span>
+                )}
               </div>
               {form.description && (
                 <p className="mt-3 text-sm leading-relaxed text-stone-600">{form.description}</p>

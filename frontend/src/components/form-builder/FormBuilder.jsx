@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -15,9 +15,10 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { createForm, updateForm } from '../../services/api';
+import { createForm, updateForm, updateFormSchedule } from '../../services/api';
 import { useNavigation } from '../../context/NavigationContext';
 import { copyText } from '../../utils/clipboard';
+import { DEFAULT_CLOSE_WINDOW_MS, formatDateTime, toLocalInput } from '../../utils/forms';
 
 const FIELD_TYPES = ['TEXT', 'NUMBER', 'DATE', 'CHECKBOX', 'RADIO', 'SELECT'];
 
@@ -393,7 +394,7 @@ function FieldCard({ field, index, onChange, onRemove, showErrors, isEmail, isDu
 
 function UploadZone({ icon, title, subtitle, onRemove }) {
   return (
-    <div className="relative flex flex-col items-center justify-center gap-3 rounded-[20px] border-2 border-dashed border-plum/20 bg-white/60 px-6 py-8 text-center transition hover:border-plum/40">
+    <div className="relative flex h-full w-full flex-col items-center justify-center gap-3 rounded-[20px] border-2 border-dashed border-plum/20 bg-white/60 px-8 py-12 text-center transition hover:border-plum/40">
       {onRemove && (
         <button
           type="button"
@@ -430,12 +431,7 @@ function UploadSection({ includeCoverLetter, onIncludeCoverLetterChange }) {
           </button>
         )}
       </div>
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <UploadZone
-          icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6"><circle cx="12" cy="8" r="3.5" /><path strokeLinecap="round" d="M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6" /></svg>}
-          title="Photo"
-          subtitle="Drop your photo here"
-        />
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <UploadZone
           icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6"><path strokeLinecap="round" d="M7 3h7l4 4v14a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z" /><path strokeLinecap="round" d="M14 3v4h4" /></svg>}
           title="Upload your CV"
@@ -527,6 +523,20 @@ function FormBuilder({ initialForm = null, template = 'standard' }) {
   const [submitting, setSubmitting] = useState(false);
   const [needsSignIn, setNeedsSignIn] = useState(false);
   const [includeCoverLetter, setIncludeCoverLetter] = useState(true);
+  const [scheduleEnabled, setScheduleEnabled] = useState(!!initialForm?.closeAt);
+  const [closeAtLocal, setCloseAtLocal] = useState(() =>
+    initialForm?.closeAt
+      ? toLocalInput(initialForm.closeAt)
+      : toLocalInput(new Date(Date.now() + DEFAULT_CLOSE_WINDOW_MS))
+  );
+  const closeAtISO = (() => {
+    if (!closeAtLocal) return null;
+    const d = new Date(closeAtLocal);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toISOString();
+  })();
+  const [scheduleNote, setScheduleNote] = useState('');
+  const opensOnFixed = useMemo(() => toLocalInput(new Date()), []);
   const [showErrors, setShowErrors] = useState(false);
   const [pillHovered, setPillHovered] = useState('submit');
   const [pill, setPill] = useState({ x: 0, w: 0, ready: false });
@@ -554,6 +564,12 @@ function FormBuilder({ initialForm = null, template = 'standard' }) {
       setTitle(initialForm.title ?? '');
       setDescription(initialForm.description ?? '');
       setRequirements(initialForm.requirements ?? '');
+      setScheduleEnabled(!!initialForm.closeAt);
+      setCloseAtLocal(
+        initialForm.closeAt
+          ? toLocalInput(initialForm.closeAt)
+          : toLocalInput(new Date(Date.now() + DEFAULT_CLOSE_WINDOW_MS))
+      );
     }
     setFields(seedFields(initialForm, templateFields));
   }, [initialForm, template]);
@@ -644,6 +660,7 @@ function FormBuilder({ initialForm = null, template = 'standard' }) {
     e.preventDefault();
     setNeedsSignIn(false);
     setError(null);
+    setScheduleNote('');
 
     if (!title.trim()) {
       setError('Form title is required.');
@@ -673,6 +690,17 @@ function FormBuilder({ initialForm = null, template = 'standard' }) {
       return;
     }
 
+    if (scheduleEnabled) {
+      if (!closeAtISO) {
+        setError('Choose a closing time for the schedule.');
+        return;
+      }
+      if (new Date(closeAtISO) <= new Date()) {
+        setError('Closing time must be after the form opens (publish time).');
+        return;
+      }
+    }
+
     const payload = buildPayload();
     if (payload.fields.length === 0) {
       setError('Add at least one question with a label.');
@@ -684,13 +712,28 @@ function FormBuilder({ initialForm = null, template = 'standard' }) {
     setLinkCopied(false);
     try {
       let publishedLink;
+      let formId;
       if (isEditing) {
         await updateForm(initialForm.id, payload);
+        formId = initialForm.id;
         publishedLink = buildFormLink(initialForm.id);
       } else {
         const created = await createForm(payload);
-        publishedLink = buildFormLink(created?.id);
+        formId = created?.id;
+        publishedLink = buildFormLink(formId);
       }
+
+      let scheduleNoteText = '';
+      if (formId && scheduleEnabled && closeAtISO) {
+        try {
+          await updateFormSchedule(formId, closeAtISO);
+          scheduleNoteText = ` Close at: ${formatDateTime(closeAtISO)} — the form closes automatically.`;
+        } catch (scheduleErr) {
+          scheduleNoteText = ` The form was saved, but the closing time could not be set (${scheduleErr.message || 'error'}).`;
+        }
+      }
+      setScheduleNote(scheduleNoteText);
+
       setFormLink(publishedLink);
       setSuccess(true);
       if (publishedLink) {
@@ -821,19 +864,66 @@ function FormBuilder({ initialForm = null, template = 'standard' }) {
         <UploadSection includeCoverLetter={includeCoverLetter} onIncludeCoverLetterChange={setIncludeCoverLetter} />
       </div>
 
+      <section className="mt-8 rounded-[20px] bg-[#f2efe7] p-5 ring-1 ring-plum/10 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-lg font-bold text-plum">Schedule</h3>
+          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-stone-600">
+            <input
+              type="checkbox"
+              checked={scheduleEnabled}
+              onChange={(e) => setScheduleEnabled(e.target.checked)}
+              className="h-4 w-4 rounded accent-plum"
+            />
+            Set close time
+          </label>
+        </div>
+
+        {scheduleEnabled && (
+          <div className="mt-5 max-w-lg space-y-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-bold text-plum">Opens on</label>
+                <input
+                  type="datetime-local"
+                  value={opensOnFixed}
+                  readOnly
+                  className="w-full cursor-not-allowed rounded-[20px] bg-[#efede5] px-4 py-3 text-sm text-stone-500 outline-none"
+                />
+                <p className="mt-1 text-[11px] text-stone-400">
+                  Fixed — the form opens the moment you publish it.
+                </p>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-bold text-plum">Close at</label>
+                <input
+                  type="datetime-local"
+                  value={closeAtLocal}
+                  min={opensOnFixed}
+                  onChange={(e) => setCloseAtLocal(e.target.value)}
+                  className="w-full rounded-[20px] bg-[#d9d9d9] px-4 py-3 text-sm text-stone-700 outline-none transition focus:bg-[#cfcfcf]"
+                />
+              </div>
+            </div>
+            <p className="text-[11px] text-stone-400">
+              Submissions are blocked automatically after the close time.
+            </p>
+          </div>
+        )}
+      </section>
+
       {success && (
         <div>
           <StatusCard
             variant="success"
             message={isEditing ? 'Saved Successfully!' : 'Published Successfully!'}
             subText={
-              linkCopied
+              (linkCopied
                 ? `${
                     isEditing ? 'Your hiring form has been updated.' : 'Your hiring form is now live.'
                   } The form link was copied to your clipboard.`
                 : `${
                     isEditing ? 'Your hiring form has been updated.' : 'Your hiring form is now live.'
-                  } ${formLink ? 'Copy the form link below to share it.' : ''}`
+                  } ${formLink ? 'Copy the form link below to share it.' : ''}`) + scheduleNote
             }
             onClose={() => setSuccess(false)}
           />

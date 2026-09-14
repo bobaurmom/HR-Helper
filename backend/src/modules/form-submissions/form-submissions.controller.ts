@@ -7,6 +7,7 @@ import { SubmissionDetailResponseDto } from './dto/submission-detail-response.dt
 import { UpdateSubmissionStatusDto } from './dto/update-submission-status.dto';
 import { BulkUpdateSubmissionStatusDto } from './dto/bulk-update-submission-status.dto';
 import { JwtAuthGuard } from '../auth/auth.middleware';
+
 @ApiTags('form-submissions')
 @Controller('forms/:formId/submissions')
 export class FormSubmissionsController {
@@ -36,7 +37,6 @@ export class FormSubmissionsController {
   async findOne(@Req() req: { user: { id: number } }, @Param('formId') formId: string, @Param('submissionId') submissionId: string) {
     return this.submissionsService.findOne(Number(submissionId), req.user.id);
   }
-
 
   @Patch('bulk/status')
   @ApiBearerAuth()
@@ -73,5 +73,18 @@ export class FormSubmissionsController {
   @ApiResponse({ status: 204, description: 'Submission deleted successfully' })
   async delete(@Req() req: { user: { id: number } }, @Param('submissionId') submissionId: string) {
     return this.submissionsService.delete(Number(submissionId), req.user.id);
+  }
+
+  @Post(':submissionId/rescore')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Re-trigger AI CV scoring for a submission' })
+  @ApiResponse({ status: 200, type: SubmissionResponseDto })
+  async rescore(
+    @Req() req: { user: { id: number } },
+    @Param('formId') formId: string,
+    @Param('submissionId') submissionId: string,
+  ) {
+    return this.submissionsService.rescore(formId, Number(submissionId), req.user.id);
   }
 }

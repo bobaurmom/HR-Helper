@@ -1,22 +1,118 @@
-function App() {
-  return (
-    <main className="min-h-screen bg-slate-950 px-6 py-16 text-slate-100">
-      <section className="mx-auto max-w-3xl">
-        <p className="mb-4 text-sm font-semibold uppercase tracking-[0.3em] text-cyan-400">HR Helper</p>
-        <h1 className="text-5xl font-bold tracking-tight">Your people operations workspace.</h1>
-        <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300">
-          The frontend is ready. Connect it to the NestJS API and AI service as features are added.
-        </p>
-        <div className="mt-10 grid gap-4 sm:grid-cols-3">
-          {['People', 'Requests', 'Insights'].map((label) => (
-            <div key={label} className="rounded-lg border border-slate-800 bg-slate-900 p-5">
-              <p className="font-medium">{label}</p>
-              <p className="mt-2 text-sm text-slate-400">Ready for your first module.</p>
-            </div>
-          ))}
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import LandingPage from './pages/LandingPage';
+import HRPage from './pages/HRPage';
+import Authentication from './pages/Authentication';
+import AuthModal from './components/auth/AuthModal';
+import { NavigationProvider } from './context/NavigationContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import User_Workspace from './pages/User_Workspace';
+import CreateForm from './pages/CreateForm';
+import EditForm from './pages/EditForm';
+import FormView from './pages/FormView';
+import ApplyForm from './pages/ApplyForm';
+import SubmissionsView from './pages/SubmissionsView';
+
+function RequireAuth({ children }) {
+  const { user, loading, authError } = useAuth();
+
+  if (loading) return null;
+  if (authError && !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-6">
+        <div className="w-full max-w-md rounded-[20px] bg-white p-8 text-center ring-1 ring-plum/10">
+          <p className="text-sm font-semibold text-red-600">Unable to verify your session.</p>
+          <p className="mt-2 text-sm text-stone-500">{authError}</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-5 rounded-full bg-plum px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-plum-dark"
+          >
+            Retry
+          </button>
         </div>
-      </section>
-    </main>
+      </div>
+    );
+  }
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+}
+
+function App() {
+  const location = useLocation();
+  const background = location.state && location.state.background;
+
+  return (
+    <AuthProvider>
+      <NavigationProvider>
+        <Routes location={background || location}>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<Authentication />} />
+          <Route path="/apply/:formId" element={<ApplyForm />} />
+          <Route
+            path="/home"
+            element={
+              <RequireAuth>
+                <HRPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/hr"
+            element={
+              <RequireAuth>
+                <HRPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/hr/forms/new"
+            element={
+              <RequireAuth>
+                <CreateForm />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/hr/forms/:formId/edit"
+            element={
+              <RequireAuth>
+                <EditForm />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/hr/forms/:formId"
+            element={
+              <RequireAuth>
+                <FormView />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/hr/forms/:formId/submissions"
+            element={
+              <RequireAuth>
+                <SubmissionsView />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/workspace"
+            element={
+              <RequireAuth>
+                <User_Workspace />
+              </RequireAuth>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+        {background && (
+          <Routes>
+            <Route path="/login" element={<AuthModal />} />
+          </Routes>
+        )}
+      </NavigationProvider>
+    </AuthProvider>
   );
 }
 
