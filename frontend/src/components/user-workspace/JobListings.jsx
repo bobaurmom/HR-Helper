@@ -56,16 +56,7 @@ function JobListings({ forms = [], loading = false }) {
 
   return (
     <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-plum/10">
-      <div className="flex items-center justify-between">
-        <h2 className="font-sans text-lg font-bold text-plum">Job Listings</h2>
-        <button
-          type="button"
-          onClick={goToJobListings}
-          className="cursor-pointer text-xs font-semibold text-teal transition hover:text-teal-dark"
-        >
-          View all forms
-        </button>
-      </div>
+      <h2 className="font-sans text-lg font-bold text-plum">Job Listings</h2>
 
       {loading ? (
         <div className="mt-4 space-y-4">
@@ -118,6 +109,16 @@ function JobListings({ forms = [], loading = false }) {
       ) : (
         <p className="mt-4 text-sm text-stone-500">No job listings yet.</p>
       )}
+
+      <div className="mt-4 border-t border-plum/10 pt-4">
+        <button
+          type="button"
+          onClick={goToJobListings}
+          className="w-full rounded-full bg-white py-2.5 text-xs font-semibold text-plum shadow-sm ring-1 ring-plum/10 transition hover:bg-[#588157] hover:text-white hover:shadow-md hover:ring-[#588157]"
+        >
+          View all forms
+        </button>
+      </div>
     </section>
   );
 }

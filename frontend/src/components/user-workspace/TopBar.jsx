@@ -1,20 +1,3 @@
-function SearchIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-5 w-5"
-    >
-      <circle cx="11" cy="11" r="7" />
-      <path d="m21 21-4.3-4.3" />
-    </svg>
-  );
-}
-
 function BellIcon() {
   return (
     <svg
@@ -62,17 +45,6 @@ function TopBar() {
       <h1 className="font-sans text-[26px] font-bold leading-none tracking-tight text-[#344e41]">
         Dashboard
       </h1>
-
-      <div className="relative order-last w-full sm:order-none sm:w-[300px]">
-        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-stone-400">
-          <SearchIcon />
-        </span>
-        <input
-          type="text"
-          placeholder="Search here"
-          className="h-[51px] w-full rounded-full border border-plum/10 bg-white pl-12 pr-5 text-sm text-stone-600 shadow-sm outline-none transition placeholder:text-stone-400 focus:border-teal"
-        />
-      </div>
 
       <div className="ml-auto flex items-center gap-2 sm:gap-3">
         <button

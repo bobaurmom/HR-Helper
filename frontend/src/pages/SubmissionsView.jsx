@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useFormsBackNav } from '../hooks/useFormsBackNav';
+import Checkbox from '../components/common/Checkbox';
 import {
   getForm,
   listSubmissions,
@@ -53,29 +54,6 @@ function ScoreBar({ score }) {
         {score != null ? `${score}/100` : '—'}
       </span>
     </div>
-  );
-}
-
-function AiScoreBadge({ status, score, aiError }) {
-  const meta = {
-    COMPLETED: { label: score != null ? `AI ${score}/100` : 'AI Complete', className: 'bg-teal/10 text-[#0d6921] ring-teal/30' },
-    PROCESSING: { label: 'AI Processing', className: 'bg-gold/20 text-amber-700 ring-gold/40' },
-    PENDING: { label: 'AI Pending', className: 'bg-stone-100 text-stone-500 ring-stone-300' },
-    FAILED: { label: 'AI Failed', className: 'bg-red-50 text-red-600 ring-red-200' },
-    SKIPPED: { label: 'AI Skipped', className: 'bg-stone-100 text-stone-400 ring-stone-200' },
-  };
-  const m = meta[status] ?? meta.PENDING;
-  const tooltip = status === 'FAILED' && aiError ? aiError : m.label;
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${m.className}`}
-      title={tooltip}
-    >
-      {status === 'PROCESSING' && (
-        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-600" />
-      )}
-      {m.label}
-    </span>
   );
 }
 
@@ -168,14 +146,13 @@ function DetailModal({ detail, onClose }) {
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <StatusBadge status={detail?.status} />
-          <AiScoreBadge status={detail?.aiScoreStatus} score={detail?.cvScore} aiError={detail?.aiError} />
           {detail?.createdAt && (
             <span className="text-xs text-stone-500">{formatDate(detail.createdAt)}</span>
           )}
         </div>
-        {detail?.aiError && (
+        {detail?.cvEvaluation?.error && (
           <p className="mt-3 rounded-[12px] bg-red-50 px-3 py-2 text-xs font-medium text-red-600">
-            {detail.aiError}
+            {detail.cvEvaluation.error}
           </p>
         )}
 
@@ -328,7 +305,7 @@ function SubmissionsView() {
   };
 
   const doRescore = async (submission) => {
-    if (!formId || rescoring || submission.aiScoreStatus === 'PROCESSING') return;
+    if (!formId || rescoring || submission.cvEvaluation?.status === 'PROCESSING') return;
     rescoreTargetRef.current = { id: submission.id, email: submission.email, startedAt: Date.now() };
     setRescoring(true);
     setRescoreTimedOut(false);
@@ -366,7 +343,7 @@ function SubmissionsView() {
       return;
     }
 
-    const aiStatus = current?.aiScoreStatus;
+    const aiStatus = current?.cvEvaluation?.status;
     if (current && AI_TERMINAL_STATES.includes(aiStatus)) {
       try {
         await load();
@@ -377,11 +354,11 @@ function SubmissionsView() {
       if (aiStatus === 'COMPLETED') {
         setRescoreNote(`Rescore complete for ${target.email}.`);
       } else if (aiStatus === 'SKIPPED') {
-        setRescoreNote(`Rescore skipped for ${target.email}: ${current.aiError ?? 'no job requirements or CV on file'}.`);
+        setRescoreNote(`Rescore skipped for ${target.email}: ${current.cvEvaluation?.error ?? 'no job requirements or CV on file'}.`);
       } else {
         setRescoreNote(
-          current.aiError
-            ? `Rescore failed for ${target.email}: ${current.aiError}`
+          current.cvEvaluation?.error
+            ? `Rescore failed for ${target.email}: ${current.cvEvaluation.error}`
             : `Rescore failed for ${target.email}.`
         );
       }
@@ -554,12 +531,10 @@ function SubmissionsView() {
                   <thead>
                     <tr className="border-b border-plum/10 text-[11px] uppercase tracking-wide text-stone-400">
                       <th className="px-4 py-3">
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={submissions.length > 0 && selected.size === submissions.length}
                           onChange={toggleSelectAll}
-                          aria-label="Select all submissions"
-                          className="h-4 w-4 rounded accent-plum"
+                          ariaLabel="Select all submissions"
                         />
                       </th>
                       <th className="px-4 py-3">Applicant</th>
@@ -573,12 +548,10 @@ function SubmissionsView() {
                     {submissions.map((submission) => (
                       <tr key={submission.id} className="transition hover:bg-white">
                         <td className="px-4 py-3.5">
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={selected.has(submission.id)}
                             onChange={() => toggleSelect(submission.id)}
-                            aria-label={`Select submission from ${submission.email}`}
-                            className="h-4 w-4 rounded accent-plum"
+                            ariaLabel={`Select submission from ${submission.email}`}
                           />
                         </td>
                         <td className="px-4 py-3.5">
@@ -591,10 +564,7 @@ function SubmissionsView() {
                           </button>
                         </td>
                         <td className="px-4 py-3.5">
-                          <div className="flex flex-col items-start gap-1.5">
-                            <ScoreBar score={submission.cvScore} />
-                            <AiScoreBadge status={submission.aiScoreStatus} score={submission.cvScore} aiError={submission.aiError} />
-                          </div>
+                          <ScoreBar score={submission.cvEvaluation?.score} />
                         </td>
                         <td className="px-4 py-3.5">
                           <StatusBadge status={submission.status} />
@@ -626,11 +596,11 @@ function SubmissionsView() {
                             )}
                             <button
                               type="button"
-                              disabled={busy || rescoring || submission.aiScoreStatus === 'PROCESSING'}
+                              disabled={busy || rescoring || submission.cvEvaluation?.status === 'PROCESSING'}
                               onClick={() => doRescore(submission)}
                               aria-label={`Rescore submission from ${submission.email}`}
                               title={
-                                submission.aiScoreStatus === 'PROCESSING'
+                                submission.cvEvaluation?.status === 'PROCESSING'
                                   ? 'AI rescore already in progress'
                                   : 'Rescore AI score'
                               }

@@ -1,16 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsBoolean, IsOptional } from 'class-validator';
+import { IsDateString, IsBoolean } from 'class-validator';
 
 export class UpdateScheduleDto {
-  @ApiProperty({
-    description: 'The ISO date string when the form should close, or null to clear the close time (form becomes permanently open)',
-    example: '2026-09-10T17:00:00.000Z',
-    required: false,
-    nullable: true,
-  })
-  @IsOptional()
+  @ApiProperty({ description: 'The ISO date string when the form should close', example: '2026-09-10T17:00:00.000Z' })
   @IsDateString()
-  closeAt!: string | null;
+  closeAt!: string;
 }
 
 export class UpdateStatusDto {

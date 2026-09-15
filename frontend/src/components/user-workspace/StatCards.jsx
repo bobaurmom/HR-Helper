@@ -34,14 +34,14 @@ function StatCards({ forms = [], submissions = [], loading = false }) {
   const approved = submissions.filter((s) => s.status === 'APPROVED').length;
   const pending = submissions.filter((s) => s.status === 'PENDING').length;
   const rejected = submissions.filter((s) => s.status === 'REJECTED').length;
-  const scored = submissions.filter((s) => s.cvScore != null);
+  const scored = submissions.filter((s) => s.cvEvaluation?.score != null);
   const avg =
     scored.length > 0
-      ? Math.round(scored.reduce((sum, s) => sum + Number(s.cvScore) || 0, 0) / scored.length)
+      ? Math.round(scored.reduce((sum, s) => sum + Number(s.cvEvaluation?.score) || 0, 0) / scored.length)
       : null;
   const topMatch =
     scored.length > 0
-      ? Math.round(Math.max(...scored.map((s) => Number(s.cvScore) || 0)))
+      ? Math.round(Math.max(...scored.map((s) => Number(s.cvEvaluation?.score) || 0)))
       : null;
   const avgPerJob =
     forms.length > 0 ? Math.round((totalApplicants / forms.length) * 10) / 10 : null;

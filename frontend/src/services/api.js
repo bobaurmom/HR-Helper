@@ -111,6 +111,10 @@ export async function uploadCvToS3(uploadUrl, file) {
   if (!response.ok) throw new Error(`File upload failed (${response.status})`);
 }
 
+export function getFileDownloadUrl(fileId) {
+  return request(`/files/${fileId}`);
+}
+
 export function submitFormAnswers(formId, payload) {
   return request(`/forms/${formId}/submissions`, { method: 'POST', body: payload });
 }

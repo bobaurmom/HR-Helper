@@ -210,7 +210,7 @@ export class FormsService {
     });
   }
 
-  async updateSchedule(id: string, userId: number, closeAt: string | null) {
+  async updateSchedule(id: string, userId: number, closeAt: string) {
     const form = await this.prisma.form.findUnique({ where: { id } });
     if (!form) {
       throw new NotFoundException('Form not found');
@@ -219,17 +219,11 @@ export class FormsService {
       throw new ForbiddenException('You do not have permission to update this form');
     }
 
-    const existingOpenAt = form.openAt ? new Date(form.openAt).getTime() : null;
-    const keepScheduled = existingOpenAt !== null && existingOpenAt > Date.now();
-
     return this.prisma.form.update({
       where: { id },
       data: {
-        // Clearing the close time permanently re-opens the form now. Otherwise
-        // preserve a future openAt so editing a Scheduled form does not silently
-        // flip it to Live.
-        openAt: closeAt === null || !keepScheduled ? new Date() : form.openAt,
-        closeAt: closeAt === null ? null : new Date(closeAt),
+        openAt: new Date(), // Start immediately
+        closeAt: new Date(closeAt),
       },
     });
   }

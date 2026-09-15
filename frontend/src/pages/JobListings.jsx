@@ -53,6 +53,15 @@ function PlusIcon() {
   );
 }
 
+function SearchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <circle cx="11" cy="11" r="7" />
+      <path d="m21 21-4.3-4.3" />
+    </svg>
+  );
+}
+
 function EyeIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
@@ -437,6 +446,7 @@ function JobListingsPage() {
   const { goToSubmissionsWs, goToFormViewWs, goToEditFormWs, goToCreateFormWs } = useNavigation();
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const now = useNow(getNextFormsStatusTime(forms));
 
   const {
@@ -510,6 +520,13 @@ function JobListingsPage() {
     }))
     .sort((a, b) => Number(b.live) - Number(a.live));
 
+  const q = searchQuery.trim().toLowerCase();
+  const filteredJobs = q
+    ? jobs.filter(
+        (job) => job.title.toLowerCase().includes(q) || job.meta.toLowerCase().includes(q)
+      )
+    : jobs;
+
   return (
     <div className="flex min-h-screen bg-[#fffef9] font-sans text-stone-800 antialiased">
       <Navbar />
@@ -560,11 +577,26 @@ function JobListingsPage() {
           </div>
 
           <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-plum/10">
-            <div className="flex items-center justify-between">
-              <h2 className="font-sans text-lg font-bold text-plum">All roles</h2>
-              <span className="rounded-full bg-plum px-3 py-1 text-xs font-bold text-white">
-                {jobs.length} total
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <h2 className="font-sans text-lg font-bold text-plum">All roles</h2>
+                <span className="rounded-full bg-plum px-3 py-1 text-xs font-bold text-white">
+                  {filteredJobs.length} {filteredJobs.length === 1 ? 'role' : 'roles'}
+                </span>
+              </div>
+
+              <div className="relative w-full sm:w-[300px]">
+                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-stone-400">
+                  <SearchIcon />
+                </span>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search forms"
+                  className="h-[46px] w-full rounded-full border border-plum/10 bg-white pl-12 pr-5 text-sm text-stone-600 shadow-sm outline-none transition placeholder:text-stone-400 focus:border-teal"
+                />
+              </div>
             </div>
 
             <div className="mt-2">
@@ -573,27 +605,34 @@ function JobListingsPage() {
                   {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
                 </div>
               ) : jobs.length > 0 ? (
-                <div className="mt-4 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                  {jobs.map((job) => (
-                    <JobCard
-                      key={job.id}
-                      job={job}
-                      onApplicants={() => goToSubmissionsWs(job.id)}
-                      onEdit={(job.form.submissionCount ?? 0) === 0 ? () => goToEditFormWs(job.id) : undefined}
-                      onDelete={() => setDeleteTarget(job.form)}
-                      onDuplicate={() => handleDuplicate(job.form)}
-                      onCopyLink={() => copyLink(job.form)}
-                      onCloseNow={
-                        job.status === 'Live' || job.status === 'Scheduled'
-                          ? () => setCloseTarget(job.form)
-                          : undefined
-                      }
-                      onOpen={job.status === 'Closed' ? () => setOpenTarget(job.form) : undefined}
-                      onSubmissions={() => goToSubmissionsWs(job.id)}
-                      onPreview={() => goToFormViewWs(job.id)}
-                    />
-                  ))}
-                </div>
+                filteredJobs.length > 0 ? (
+                  <div className="mt-4 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                    {filteredJobs.map((job) => (
+                      <JobCard
+                        key={job.id}
+                        job={job}
+                        onApplicants={() => goToSubmissionsWs(job.id)}
+                        onEdit={(job.form.submissionCount ?? 0) === 0 ? () => goToEditFormWs(job.id) : undefined}
+                        onDelete={() => setDeleteTarget(job.form)}
+                        onDuplicate={() => handleDuplicate(job.form)}
+                        onCopyLink={() => copyLink(job.form)}
+                        onCloseNow={
+                          job.status === 'Live' || job.status === 'Scheduled'
+                            ? () => setCloseTarget(job.form)
+                            : undefined
+                        }
+                        onOpen={job.status === 'Closed' ? () => setOpenTarget(job.form) : undefined}
+                        onSubmissions={() => goToSubmissionsWs(job.id)}
+                        onPreview={() => goToFormViewWs(job.id)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-14 text-center">
+                    <p className="text-sm font-semibold text-stone-600">No forms match &ldquo;{searchQuery}&rdquo;</p>
+                    <p className="mt-1 text-sm text-stone-500">Try a different search term.</p>
+                  </div>
+                )
               ) : (
                 <div className="py-14 text-center">
                   <p className="text-sm font-semibold text-stone-600">No job listings yet</p>
