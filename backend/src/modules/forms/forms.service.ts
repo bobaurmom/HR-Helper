@@ -94,7 +94,10 @@ export class FormsService {
 
   async update(id: string, userId: number, dto: UpdateFormDto) {
     const form = await this.prisma.form.findUnique({ where: { id } });
-    if (!form || form.userId !== userId) {
+    if (!form) {
+      throw new NotFoundException('Form not found');
+    }
+    if (form.userId !== userId) {
       throw new ForbiddenException('You do not have permission to edit this form');
     }
 
@@ -207,25 +210,37 @@ export class FormsService {
     });
   }
 
-  async updateSchedule(id: string, userId: number, closeAt: string) {
+  async updateSchedule(id: string, userId: number, closeAt: string | null) {
     const form = await this.prisma.form.findUnique({ where: { id } });
-    if (!form || form.userId !== userId) {
-        throw new ForbiddenException('You do not have permission to update this form');
+    if (!form) {
+      throw new NotFoundException('Form not found');
     }
+    if (form.userId !== userId) {
+      throw new ForbiddenException('You do not have permission to update this form');
+    }
+
+    const existingOpenAt = form.openAt ? new Date(form.openAt).getTime() : null;
+    const keepScheduled = existingOpenAt !== null && existingOpenAt > Date.now();
 
     return this.prisma.form.update({
       where: { id },
       data: {
-        openAt: new Date(), // Start immediately
-        closeAt: new Date(closeAt),
+        // Clearing the close time permanently re-opens the form now. Otherwise
+        // preserve a future openAt so editing a Scheduled form does not silently
+        // flip it to Live.
+        openAt: closeAt === null || !keepScheduled ? new Date() : form.openAt,
+        closeAt: closeAt === null ? null : new Date(closeAt),
       },
     });
   }
 
   async delete(id: string, userId: number) {
     const form = await this.prisma.form.findUnique({ where: { id } });
-    if (!form || form.userId !== userId) {
-        throw new ForbiddenException('You do not have permission to delete this form');
+    if (!form) {
+      throw new NotFoundException('Form not found');
+    }
+    if (form.userId !== userId) {
+      throw new ForbiddenException('You do not have permission to delete this form');
     }
 
     try {

@@ -14,7 +14,7 @@ export class AuthController {
     @UseGuards(GoogleOAuthGuard)
     async googleAuthRedirect(@Req() req: Request & { user: any }, @Res() res: Response) {
         if (!req.user?.accessToken) {
-            return res.redirect(`${process.env.FRONTEND_URL ?? 'http://localhost:5173'}/login?error=oauth_failed`);
+            return res.redirect(`${process.env.FRONTEND_URL}/login?error=oauth_failed`);
         }
         const { accessToken } = req.user;
         res.cookie('HiOringToken', accessToken, {
@@ -23,7 +23,7 @@ export class AuthController {
             secure: process.env.NODE_ENV === 'production',
             maxAge: 8 * 60 * 60 * 1000,
         });
-        return res.redirect(`${process.env.FRONTEND_URL ?? 'http://localhost:5173'}/home`);
+        return res.redirect(`${process.env.FRONTEND_URL}/home`);
     }
     @Post('logout')
     async logout(@Req() req: Request, @Res() res: Response) {

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { useNavigation } from '../../context/NavigationContext';
-import ConfirmModal from './ConfirmModal';
+import ConfirmModal from '../common/ConfirmModal';
 import { useAuth } from '../../context/AuthContext';
 
 const links = [

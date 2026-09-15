@@ -7,7 +7,6 @@ import { SubmissionDetailResponseDto } from './dto/submission-detail-response.dt
 import { UpdateSubmissionStatusDto } from './dto/update-submission-status.dto';
 import { BulkUpdateSubmissionStatusDto } from './dto/bulk-update-submission-status.dto';
 import { JwtAuthGuard } from '../auth/auth.middleware';
-
 @ApiTags('form-submissions')
 @Controller('forms/:formId/submissions')
 export class FormSubmissionsController {
@@ -35,8 +34,9 @@ export class FormSubmissionsController {
   @ApiOperation({ summary: 'Get a submission by ID with form structure' })
   @ApiResponse({ status: 200, type: SubmissionDetailResponseDto })
   async findOne(@Req() req: { user: { id: number } }, @Param('formId') formId: string, @Param('submissionId') submissionId: string) {
-    return this.submissionsService.findOne(Number(submissionId), req.user.id);
+    return this.submissionsService.findOne(submissionId, req.user.id);
   }
+
 
   @Patch('bulk/status')
   @ApiBearerAuth()
@@ -62,7 +62,7 @@ export class FormSubmissionsController {
     @Param('submissionId') submissionId: string,
     @Body() dto: UpdateSubmissionStatusDto,
   ) {
-    return this.submissionsService.updateStatus(formId, Number(submissionId), dto.status, req.user.id);
+    return this.submissionsService.updateStatus(formId, submissionId, dto.status, req.user.id);
   }
 
   @Delete(':submissionId')
@@ -72,7 +72,7 @@ export class FormSubmissionsController {
   @ApiOperation({ summary: 'Delete a submission' })
   @ApiResponse({ status: 204, description: 'Submission deleted successfully' })
   async delete(@Req() req: { user: { id: number } }, @Param('submissionId') submissionId: string) {
-    return this.submissionsService.delete(Number(submissionId), req.user.id);
+    return this.submissionsService.delete(submissionId, req.user.id);
   }
 
   @Post(':submissionId/rescore')
@@ -85,6 +85,6 @@ export class FormSubmissionsController {
     @Param('formId') formId: string,
     @Param('submissionId') submissionId: string,
   ) {
-    return this.submissionsService.rescore(formId, Number(submissionId), req.user.id);
+    return this.submissionsService.rescore(formId, submissionId, req.user.id);
   }
 }

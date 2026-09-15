@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useNavigation } from '../context/NavigationContext';
+import { useFormsBackNav } from '../hooks/useFormsBackNav';
 import {
   getForm,
   listSubmissions,
@@ -16,6 +16,10 @@ const STATUS_META = {
   APPROVED: { label: 'Approved', className: 'bg-[#a7eda7] text-[#0d6921]', dot: 'bg-[#0d6921]' },
   REJECTED: { label: 'Rejected', className: 'bg-red-100 text-red-700', dot: 'bg-red-600' },
 };
+
+const AI_TERMINAL_STATES = ['COMPLETED', 'FAILED', 'SKIPPED'];
+const AI_POLL_INTERVAL_MS = 3000;
+const AI_POLL_TIMEOUT_MS = 90000;
 
 const formatDate = (value) => {
   if (!value) return '—';
@@ -49,6 +53,29 @@ function ScoreBar({ score }) {
         {score != null ? `${score}/100` : '—'}
       </span>
     </div>
+  );
+}
+
+function AiScoreBadge({ status, score, aiError }) {
+  const meta = {
+    COMPLETED: { label: score != null ? `AI ${score}/100` : 'AI Complete', className: 'bg-teal/10 text-[#0d6921] ring-teal/30' },
+    PROCESSING: { label: 'AI Processing', className: 'bg-gold/20 text-amber-700 ring-gold/40' },
+    PENDING: { label: 'AI Pending', className: 'bg-stone-100 text-stone-500 ring-stone-300' },
+    FAILED: { label: 'AI Failed', className: 'bg-red-50 text-red-600 ring-red-200' },
+    SKIPPED: { label: 'AI Skipped', className: 'bg-stone-100 text-stone-400 ring-stone-200' },
+  };
+  const m = meta[status] ?? meta.PENDING;
+  const tooltip = status === 'FAILED' && aiError ? aiError : m.label;
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${m.className}`}
+      title={tooltip}
+    >
+      {status === 'PROCESSING' && (
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-600" />
+      )}
+      {m.label}
+    </span>
   );
 }
 
@@ -141,15 +168,16 @@ function DetailModal({ detail, onClose }) {
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <StatusBadge status={detail?.status} />
-          {detail?.cvScore != null && (
-            <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-plum ring-1 ring-plum/10">
-              CV score {detail.cvScore}/100
-            </span>
-          )}
+          <AiScoreBadge status={detail?.aiScoreStatus} score={detail?.cvScore} aiError={detail?.aiError} />
           {detail?.createdAt && (
             <span className="text-xs text-stone-500">{formatDate(detail.createdAt)}</span>
           )}
         </div>
+        {detail?.aiError && (
+          <p className="mt-3 rounded-[12px] bg-red-50 px-3 py-2 text-xs font-medium text-red-600">
+            {detail.aiError}
+          </p>
+        )}
 
         <div className="mt-5 space-y-3">
           {answers.map((answer) => {
@@ -175,7 +203,7 @@ function DetailModal({ detail, onClose }) {
 
 function SubmissionsView() {
   const { formId } = useParams();
-  const { goToHR } = useNavigation();
+  const backTo = useFormsBackNav();
   const [form, setForm] = useState(null);
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -189,7 +217,9 @@ function SubmissionsView() {
   const [deleting, setDeleting] = useState(false);
   const [rescoring, setRescoring] = useState(false);
   const [rescoreNote, setRescoreNote] = useState(null);
+  const [rescoreTimedOut, setRescoreTimedOut] = useState(false);
   const rescoreTimerRef = useRef(null);
+  const rescoreTargetRef = useRef(null);
 
   const load = async () => {
     if (!formId) return;
@@ -298,27 +328,90 @@ function SubmissionsView() {
   };
 
   const doRescore = async (submission) => {
-    if (!formId || rescoring) return;
+    if (!formId || rescoring || submission.aiScoreStatus === 'PROCESSING') return;
+    rescoreTargetRef.current = { id: submission.id, email: submission.email, startedAt: Date.now() };
     setRescoring(true);
+    setRescoreTimedOut(false);
     setError(null);
     setRescoreNote(`Rescoring ${submission.email}...`);
     try {
       await rescoreSubmission(formId, submission.id);
-      rescoreTimerRef.current = setTimeout(async () => {
-        try {
-          await load();
-          setRescoreNote(`Rescore complete for ${submission.email}.`);
-        } catch {
-          setRescoreNote('Rescore finished, but reloading submissions failed.');
-        } finally {
-          setRescoring(false);
-        }
-      }, 10000);
+      rescoreTimerRef.current = window.setTimeout(
+        () => tickRescore(rescoreTargetRef.current),
+        AI_POLL_INTERVAL_MS
+      );
     } catch (err) {
       setRescoring(false);
       setRescoreNote(null);
       setError(err.message || 'Failed to start rescore.');
     }
+  };
+
+  const tickRescore = async (target) => {
+    if (!formId || !target) return;
+    let current;
+    try {
+      current = await getSubmission(formId, target.id);
+    } catch (err) {
+      if (Date.now() - target.startedAt > AI_POLL_TIMEOUT_MS) {
+        setRescoring(false);
+        setRescoreTimedOut(true);
+        setRescoreNote(`Rescore for ${target.email} is taking longer than expected.`);
+        return;
+      }
+      rescoreTimerRef.current = window.setTimeout(
+        () => tickRescore(target),
+        AI_POLL_INTERVAL_MS
+      );
+      return;
+    }
+
+    const aiStatus = current?.aiScoreStatus;
+    if (current && AI_TERMINAL_STATES.includes(aiStatus)) {
+      try {
+        await load();
+      } catch {
+        // load() already surfaces its own error
+      }
+      setRescoring(false);
+      if (aiStatus === 'COMPLETED') {
+        setRescoreNote(`Rescore complete for ${target.email}.`);
+      } else if (aiStatus === 'SKIPPED') {
+        setRescoreNote(`Rescore skipped for ${target.email}: ${current.aiError ?? 'no job requirements or CV on file'}.`);
+      } else {
+        setRescoreNote(
+          current.aiError
+            ? `Rescore failed for ${target.email}: ${current.aiError}`
+            : `Rescore failed for ${target.email}.`
+        );
+      }
+      return;
+    }
+
+    if (Date.now() - target.startedAt > AI_POLL_TIMEOUT_MS) {
+      if (rescoreTimerRef.current) {
+        clearTimeout(rescoreTimerRef.current);
+        rescoreTimerRef.current = null;
+      }
+      setRescoring(false);
+      setRescoreTimedOut(true);
+      setRescoreNote(`Rescore for ${target.email} is taking longer than expected.`);
+      return;
+    }
+    rescoreTimerRef.current = window.setTimeout(() => tickRescore(target), AI_POLL_INTERVAL_MS);
+  };
+
+  const recheckRescore = () => {
+    const target = rescoreTargetRef.current;
+    if (!formId || !target || rescoring) return;
+    setRescoring(true);
+    setRescoreTimedOut(false);
+    setRescoreNote(`Checking ${target.email}...`);
+    rescoreTargetRef.current = { ...target, startedAt: Date.now() };
+    rescoreTimerRef.current = window.setTimeout(
+      () => tickRescore(rescoreTargetRef.current),
+      AI_POLL_INTERVAL_MS
+    );
   };
 
   const selectedIds = [...selected];
@@ -327,7 +420,7 @@ function SubmissionsView() {
     <div className="flex min-h-screen flex-col bg-[#f2efe7] font-sans text-stone-800 antialiased">
       <header className="sticky top-0 z-50 border-b border-plum/10 bg-white/90 backdrop-blur-md">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-3 lg:px-8">
-          <a href="!#" onClick={(e) => { e.preventDefault(); goToHR(); }} className="flex items-center gap-2.5">
+          <a href="!#" onClick={(e) => { e.preventDefault(); backTo(); }} className="flex items-center gap-2.5">
             <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-teal">
               <span className="font-serif text-xl font-bold text-white">H</span>
               <span className="absolute -bottom-1 -left-1 h-2 w-2 rounded-sm bg-gold" />
@@ -337,7 +430,7 @@ function SubmissionsView() {
           <nav className="hidden items-center gap-6 text-sm font-medium text-stone-600 md:flex">
             <button
               type="button"
-              onClick={goToHR}
+              onClick={backTo}
               className="rounded-full bg-plum px-5 py-2 text-sm font-semibold text-white transition hover:bg-plum-dark"
             >
               Back to dashboard
@@ -349,7 +442,7 @@ function SubmissionsView() {
       <main className="mx-auto w-full max-w-6xl flex-grow px-5 py-8 lg:px-8">
         <button
           type="button"
-          onClick={goToHR}
+          onClick={backTo}
           className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-stone-500 transition hover:text-plum"
         >
           <span aria-hidden="true">&larr;</span> All hiring form
@@ -362,8 +455,31 @@ function SubmissionsView() {
         )}
 
         {rescoreNote && (
-          <div className="mb-5 rounded-[20px] bg-gold/40 px-5 py-4 text-sm font-semibold text-plum">
-            {rescoreNote}
+          <div className="mb-5 flex items-start justify-between gap-4 rounded-[20px] bg-gold/40 px-5 py-4 text-sm font-semibold text-plum">
+            <span>{rescoreNote}</span>
+            <span className="flex shrink-0 items-center gap-2">
+              {rescoreTimedOut && !rescoring && (
+                <button
+                  type="button"
+                  onClick={recheckRescore}
+                  className="rounded-full bg-plum px-3 py-1 text-[11px] font-bold text-white transition hover:bg-plum-dark"
+                >
+                  Check status
+                </button>
+              )}
+              {!rescoring && (
+                <button
+                  type="button"
+                  onClick={() => setRescoreNote(null)}
+                  aria-label="Dismiss rescore notice"
+                  className="rounded-full p-1 text-plum/60 transition hover:bg-plum/10 hover:text-plum"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-4 w-4">
+                    <path d="M18 6 6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </span>
           </div>
         )}
 
@@ -475,7 +591,10 @@ function SubmissionsView() {
                           </button>
                         </td>
                         <td className="px-4 py-3.5">
-                          <ScoreBar score={submission.cvScore} />
+                          <div className="flex flex-col items-start gap-1.5">
+                            <ScoreBar score={submission.cvScore} />
+                            <AiScoreBadge status={submission.aiScoreStatus} score={submission.cvScore} aiError={submission.aiError} />
+                          </div>
                         </td>
                         <td className="px-4 py-3.5">
                           <StatusBadge status={submission.status} />
@@ -507,10 +626,14 @@ function SubmissionsView() {
                             )}
                             <button
                               type="button"
-                              disabled={busy || rescoring}
+                              disabled={busy || rescoring || submission.aiScoreStatus === 'PROCESSING'}
                               onClick={() => doRescore(submission)}
                               aria-label={`Rescore submission from ${submission.email}`}
-                              title="Rescore AI score"
+                              title={
+                                submission.aiScoreStatus === 'PROCESSING'
+                                  ? 'AI rescore already in progress'
+                                  : 'Rescore AI score'
+                              }
                               className="flex h-7 w-7 items-center justify-center rounded-full text-stone-400 transition hover:bg-gold/40 hover:text-plum disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">

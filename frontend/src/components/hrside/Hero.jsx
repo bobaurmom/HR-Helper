@@ -3,7 +3,7 @@ import { useNavigation } from '../../context/NavigationContext';
 import { listForms } from '../../services/api';
 import { getFormStatus, getNextStatusTime } from '../../utils/forms';
 import { useNow } from '../../hooks/useNow';
-import ConfirmModal from './ConfirmModal';
+import ConfirmModal from '../common/ConfirmModal';
 
 function Hero() {
   const { goToWorkspace, goToLanding } = useNavigation();

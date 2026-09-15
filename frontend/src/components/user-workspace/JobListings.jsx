@@ -34,10 +34,10 @@ function UsersIcon() {
 }
 
 function JobListings({ forms = [], loading = false }) {
-  const { goToHR, goToSubmissions } = useNavigation();
+  const { goToJobListings, goToSubmissionsWs } = useNavigation();
   const now = useNow(getNextFormsStatusTime(forms));
 
-  const jobs = (Array.isArray(forms) ? forms : []).map((form) => ({
+  const allJobs = (Array.isArray(forms) ? forms : []).map((form) => ({
     id: form.id,
     title: form.title,
     meta:
@@ -45,8 +45,14 @@ function JobListings({ forms = [], loading = false }) {
       (form.requirements && form.requirements.slice(0, 60)) ||
       'No description',
     status: getFormStatus(form, now),
+    live: getFormStatus(form, now) === 'Live',
     applicants: form.submissionCount ?? 0,
   }));
+
+  const jobs = allJobs
+    .slice()
+    .sort((a, b) => Number(b.live) - Number(a.live))
+    .slice(0, 5);
 
   return (
     <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-plum/10">
@@ -54,10 +60,10 @@ function JobListings({ forms = [], loading = false }) {
         <h2 className="font-sans text-lg font-bold text-plum">Job Listings</h2>
         <button
           type="button"
-          onClick={goToHR}
+          onClick={goToJobListings}
           className="cursor-pointer text-xs font-semibold text-teal transition hover:text-teal-dark"
         >
-          See all
+          View all forms
         </button>
       </div>
 
@@ -81,8 +87,8 @@ function JobListings({ forms = [], loading = false }) {
                 {job.status === 'Live' ? (
                   <button
                     type="button"
-                    onClick={() => goToSubmissions(job.id)}
-                    className="truncate text-sm font-semibold text-[#344e41] transition hover:text-plum"
+                    onClick={() => goToSubmissionsWs(job.id)}
+                    className="block w-full truncate text-left text-sm font-semibold text-[#344e41] transition hover:text-plum"
                     title={`View applicants for ${job.title}`}
                   >
                     {job.title}
@@ -98,7 +104,7 @@ function JobListings({ forms = [], loading = false }) {
                 {job.status === 'Live' && (
                   <button
                     type="button"
-                    onClick={() => goToSubmissions(job.id)}
+                    onClick={() => goToSubmissionsWs(job.id)}
                     className="flex items-center gap-1.5 text-xs font-semibold text-stone-500 transition hover:text-plum"
                   >
                     <UsersIcon />

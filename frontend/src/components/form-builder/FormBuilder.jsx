@@ -16,7 +16,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { createForm, updateForm, updateFormSchedule } from '../../services/api';
-import { useNavigation } from '../../context/NavigationContext';
+import { useFormsBackNav } from '../../hooks/useFormsBackNav';
 import { copyText } from '../../utils/clipboard';
 import { DEFAULT_CLOSE_WINDOW_MS, formatDateTime, toLocalInput } from '../../utils/forms';
 
@@ -455,9 +455,10 @@ function UploadSection({ includeCoverLetter, onIncludeCoverLetterChange }) {
 
 function StatusCard({ variant = 'success', message, subText, onClose }) {
   const success = variant === 'success';
-  const color = success ? '#269b24' : '#d64545';
-  const waveFill = success ? '#04e4003a' : '#ff53533a';
-  const iconBg = success ? '#04e40048' : '#ff535348';
+  const warn = variant === 'warning';
+  const color = success ? '#269b24' : warn ? '#b45309' : '#d64545';
+  const waveFill = success ? '#04e4003a' : warn ? '#f59e0b33' : '#ff53533a';
+  const iconBg = success ? '#04e40048' : warn ? '#fcd34d66' : '#ff535348';
 
   return (
     <div className="relative mt-6 flex w-full max-w-[330px] items-center gap-3.5 overflow-hidden rounded-lg bg-white px-[15px] py-[10px] shadow-[0_8px_24px_rgba(149,157,165,0.2)]">
@@ -474,7 +475,12 @@ function StatusCard({ variant = 'success', message, subText, onClose }) {
         className="relative ml-2 flex h-[35px] w-[35px] items-center justify-center rounded-full"
         style={{ backgroundColor: iconBg }}
       >
-        {success ? (
+        {warn ? (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color }} className="h-[17px] w-[17px]">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <path d="M12 9v4M12 17h.01" />
+          </svg>
+        ) : success ? (
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ color }} className="h-[17px] w-[17px]">
             <path d="M20 6 9 17l-5-5" />
           </svg>
@@ -509,7 +515,7 @@ function StatusCard({ variant = 'success', message, subText, onClose }) {
 }
 
 function FormBuilder({ initialForm = null, template = 'standard' }) {
-  const { goToHR } = useNavigation();
+  const backTo = useFormsBackNav();
   const isEditing = Boolean(initialForm);
   const templateFields = template === 'blank' ? BLANK_FIELDS : DEFAULT_FIELDS;
   const [title, setTitle] = useState(initialForm?.title ?? '');
@@ -536,6 +542,7 @@ function FormBuilder({ initialForm = null, template = 'standard' }) {
     return d.toISOString();
   })();
   const [scheduleNote, setScheduleNote] = useState('');
+  const [scheduleWarning, setScheduleWarning] = useState('');
   const opensOnFixed = useMemo(() => toLocalInput(new Date()), []);
   const [showErrors, setShowErrors] = useState(false);
   const [pillHovered, setPillHovered] = useState('submit');
@@ -661,9 +668,14 @@ function FormBuilder({ initialForm = null, template = 'standard' }) {
     setNeedsSignIn(false);
     setError(null);
     setScheduleNote('');
+    setScheduleWarning('');
 
     if (!title.trim()) {
       setError('Form title is required.');
+      return;
+    }
+    if (!requirements.trim()) {
+      setError('Job requirements are required — the AI scoring needs them.');
       return;
     }
     if (fields.length === 0) {
@@ -724,22 +736,31 @@ function FormBuilder({ initialForm = null, template = 'standard' }) {
       }
 
       let scheduleNoteText = '';
-      if (formId && scheduleEnabled && closeAtISO) {
+      let scheduleWarningText = '';
+      if (formId && (scheduleEnabled || initialForm?.closeAt)) {
         try {
-          await updateFormSchedule(formId, closeAtISO);
-          scheduleNoteText = ` Close at: ${formatDateTime(closeAtISO)} — the form closes automatically.`;
+          if (scheduleEnabled) {
+            await updateFormSchedule(formId, closeAtISO);
+            scheduleNoteText = ` Close at: ${formatDateTime(closeAtISO)} — the form closes automatically.`;
+          } else {
+            await updateFormSchedule(formId, null);
+            scheduleNoteText = ' The form is now permanently open — no closing time.';
+          }
         } catch (scheduleErr) {
-          scheduleNoteText = ` The form was saved, but the closing time could not be set (${scheduleErr.message || 'error'}).`;
+          scheduleWarningText = scheduleErr?.message || 'The closing time could not be updated.';
         }
       }
       setScheduleNote(scheduleNoteText);
+      setScheduleWarning(scheduleWarningText);
 
       setFormLink(publishedLink);
-      setSuccess(true);
-      if (publishedLink) {
-        setLinkCopied(await copyText(publishedLink));
+      if (!scheduleWarningText) {
+        setSuccess(true);
+        if (publishedLink) {
+          setLinkCopied(await copyText(publishedLink));
+        }
+        redirectTimerRef.current = setTimeout(() => backTo(), 1600);
       }
-      redirectTimerRef.current = setTimeout(() => goToHR(), 1600);
     } catch (err) {
       if (err.status === 401) {
         setNeedsSignIn(true);
@@ -911,6 +932,15 @@ function FormBuilder({ initialForm = null, template = 'standard' }) {
         )}
       </section>
 
+      {scheduleWarning && (
+        <StatusCard
+          variant="warning"
+          message={isEditing ? 'Form saved, but the close time was not updated' : 'Form published, but the close time was not set'}
+          subText={scheduleWarning}
+          onClose={() => setScheduleWarning('')}
+        />
+      )}
+
       {success && (
         <div>
           <StatusCard
@@ -927,20 +957,21 @@ function FormBuilder({ initialForm = null, template = 'standard' }) {
             }
             onClose={() => setSuccess(false)}
           />
-          {formLink && (
-            <div className="mt-3 flex items-center gap-2 rounded-[20px] bg-white/70 px-4 py-3 ring-1 ring-plum/10">
-              <p className="min-w-0 flex-1 truncate text-xs text-stone-500">
-                Form link: <span className="font-semibold text-plum">{formLink}</span>
-              </p>
-              <button
-                type="button"
-                onClick={handleCopyLink}
-                className="shrink-0 rounded-full bg-plum px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-plum-dark"
-              >
-                {linkCopied ? 'Copied' : 'Copy'}
-              </button>
-            </div>
-          )}
+        </div>
+      )}
+
+      {formLink && (
+        <div className="mt-3 flex items-center gap-2 rounded-[20px] bg-white/70 px-4 py-3 ring-1 ring-plum/10">
+          <p className="min-w-0 flex-1 truncate text-xs text-stone-500">
+            Form link: <span className="font-semibold text-plum">{formLink}</span>
+          </p>
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            className="shrink-0 rounded-full bg-plum px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-plum-dark"
+          >
+            {linkCopied ? 'Copied' : 'Copy'}
+          </button>
         </div>
       )}
 
@@ -983,7 +1014,7 @@ function FormBuilder({ initialForm = null, template = 'standard' }) {
           <button
             ref={cancelBtnRef}
             type="button"
-            onClick={goToHR}
+            onClick={backTo}
             onMouseEnter={() => {
               setPillHovered('cancel');
               movePill(cancelBtnRef);

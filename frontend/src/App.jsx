@@ -6,11 +6,13 @@ import AuthModal from './components/auth/AuthModal';
 import { NavigationProvider } from './context/NavigationContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import User_Workspace from './pages/User_Workspace';
+import JobListingsPage from './pages/JobListings';
 import CreateForm from './pages/CreateForm';
 import EditForm from './pages/EditForm';
 import FormView from './pages/FormView';
 import ApplyForm from './pages/ApplyForm';
 import SubmissionsView from './pages/SubmissionsView';
+import WorkspaceShell from './components/workspace/WorkspaceShell';
 
 function RequireAuth({ children }) {
   const { user, loading, authError } = useAuth();
@@ -101,6 +103,54 @@ function App() {
             element={
               <RequireAuth>
                 <User_Workspace />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/workspace/jobs"
+            element={
+              <RequireAuth>
+                <JobListingsPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/workspace/forms/new"
+            element={
+              <RequireAuth>
+                <WorkspaceShell>
+                  <CreateForm />
+                </WorkspaceShell>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/workspace/forms/:formId/edit"
+            element={
+              <RequireAuth>
+                <WorkspaceShell>
+                  <EditForm />
+                </WorkspaceShell>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/workspace/forms/:formId"
+            element={
+              <RequireAuth>
+                <WorkspaceShell>
+                  <FormView />
+                </WorkspaceShell>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/workspace/forms/:formId/submissions"
+            element={
+              <RequireAuth>
+                <WorkspaceShell>
+                  <SubmissionsView />
+                </WorkspaceShell>
               </RequireAuth>
             }
           />

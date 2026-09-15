@@ -96,6 +96,23 @@ footer[id] {
   display: none;
 }
 
+@keyframes tooltip-pop {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (min-width: 768px) {
+  .popup.popup--desktop-hidden {
+    display: none;
+  }
+}
+
 .burger {
   display: flex;
   position: relative;

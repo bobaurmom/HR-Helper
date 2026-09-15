@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigation } from '../../context/NavigationContext';
-import ConfirmModal from './ConfirmModal';
+import ConfirmModal from '../common/ConfirmModal';
 
 function ViewCta() {
   const { goToWorkspace } = useNavigation();

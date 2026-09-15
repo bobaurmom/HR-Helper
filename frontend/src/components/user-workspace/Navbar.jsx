@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useNavigation } from '../../context/NavigationContext';
-import { useAuth } from '../../context/AuthContext';
+import ConfirmModal from '../common/ConfirmModal';
 
 const DURATION = 450;
 
@@ -143,19 +144,19 @@ function LogoutIcon() {
 }
 
 const mainNav = [
-  { label: 'Dashboards', icon: DashboardIcon },
-  { label: 'Candidates Interview', icon: UsersIcon },
-  { label: 'Email Sequences', icon: MailIcon },
-  { label: 'Job List', icon: BriefcaseIcon },
+  { label: 'Dashboards', icon: DashboardIcon, navigate: 'workspace' },
+  { label: 'Candidates Interview', icon: UsersIcon, soon: true },
+  { label: 'Email Sequences', icon: MailIcon, soon: true },
+  { label: 'Job List', icon: BriefcaseIcon, navigate: 'job-listings' },
 ];
 
 const accountNav = [
-  { label: 'Profile', icon: UserIcon },
-  { label: 'Billing', icon: CardIcon },
-  { label: 'Integration', icon: SettingsIcon },
+  { label: 'Profile', icon: UserIcon, soon: true },
+  { label: 'Billing', icon: CardIcon, soon: true },
+  { label: 'Integration', icon: SettingsIcon, soon: true },
 ];
 
-const otherNav = [{ label: 'Logout', icon: LogoutIcon }];
+const otherNav = [{ label: 'Exit', icon: LogoutIcon }];
 
 function GroupLabel({ children }) {
   return (
@@ -165,7 +166,7 @@ function GroupLabel({ children }) {
   );
 }
 
-function NavItem({ label, icon: Icon, active, onClick }) {
+function NavItem({ label, icon: Icon, active, soon, onClick }) {
   return (
     <button
       type="button"
@@ -186,17 +187,28 @@ function NavItem({ label, icon: Icon, active, onClick }) {
         <Icon />
       </span>
       <span className="truncate whitespace-nowrap text-left">{label}</span>
+      {soon && (
+        <span
+          className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+            active ? 'bg-white/20 text-white' : 'bg-stone-200 text-stone-500'
+          }`}
+        >
+          Soon
+        </span>
+      )}
     </button>
   );
 }
 
-function SidebarContent({ active, setActive, onNavigate }) {
-  const { goToLanding } = useNavigation();
-  const { logout } = useAuth();
+function SidebarContent({ active, setActive, onNavigate, onRequestLeave }) {
+  const { goToWorkspace, goToHR, goToJobListings } = useNavigation();
 
-  const select = (label) => {
+  const select = (label, item) => {
     setActive(label);
     onNavigate?.(label);
+    if (item?.navigate === 'workspace') goToWorkspace();
+    if (item?.navigate === 'hr') goToHR();
+    if (item?.navigate === 'job-listings') goToJobListings();
   };
 
   return (
@@ -215,7 +227,8 @@ function SidebarContent({ active, setActive, onNavigate }) {
                   label={item.label}
                   icon={item.icon}
                   active={active === item.label}
-                  onClick={() => select(item.label)}
+                  soon={item.soon}
+                  onClick={() => select(item.label, item)}
                 />
               </li>
             ))}
@@ -229,7 +242,8 @@ function SidebarContent({ active, setActive, onNavigate }) {
                   label={item.label}
                   icon={item.icon}
                   active={active === item.label}
-                  onClick={() => select(item.label)}
+                  soon={item.soon}
+                  onClick={() => select(item.label, item)}
                 />
               </li>
             ))}
@@ -243,10 +257,9 @@ function SidebarContent({ active, setActive, onNavigate }) {
                   label={item.label}
                   icon={item.icon}
                   active={false}
-                  onClick={async () => {
+                  onClick={() => {
                     onNavigate?.();
-                    await logout();
-                    goToLanding();
+                    onRequestLeave?.();
                   }}
                 />
               </li>
@@ -262,7 +275,25 @@ function Navbar() {
   const [open, setOpen] = useState(false);
   const [rendered, setRendered] = useState(false);
   const [visible, setVisible] = useState(false);
-  const [active, setActive] = useState('Dashboard');
+  const [active, setActive] = useState('Dashboards');
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const location = useLocation();
+  const { goToHR } = useNavigation();
+
+  useEffect(() => {
+    if (location.pathname.startsWith('/workspace/jobs')) setActive('Job List');
+    else if (location.pathname.startsWith('/workspace')) setActive('Dashboards');
+  }, [location.pathname]);
+
+  const requestLeave = () => {
+    setOpen(false);
+    setShowLeaveConfirm(true);
+  };
+
+  const confirmLeave = () => {
+    setShowLeaveConfirm(false);
+    goToHR();
+  };
 
   useEffect(() => {
     if (open) {
@@ -327,6 +358,7 @@ function Navbar() {
               active={active}
               setActive={setActive}
               onNavigate={() => setOpen(false)}
+              onRequestLeave={requestLeave}
             />
             <button
               type="button"
@@ -343,8 +375,17 @@ function Navbar() {
       )}
 
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[297px] lg:block">
-        <SidebarContent active={active} setActive={setActive} />
+        <SidebarContent active={active} setActive={setActive} onRequestLeave={requestLeave} />
       </aside>
+
+      <ConfirmModal
+        open={showLeaveConfirm}
+        onClose={() => setShowLeaveConfirm(false)}
+        onConfirm={confirmLeave}
+        title="Leave workspace"
+        message="Do you want to leave your workspace?"
+        confirmLabel="Yes, leave"
+      />
     </>
   );
 }
