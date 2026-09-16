@@ -15,8 +15,8 @@ export class CvEvaluationResponseDto {
   @ApiProperty({ example: 1 })
   id!: number;
 
-  @ApiProperty({ example: 'b1a2c3d4-e5f6-7890-abcd-ef1234567890' })
-  submissionId!: string;
+  @ApiProperty({ example: 1 })
+  submissionId!: number;
 
   @ApiProperty({ example: 123 })
   fileId!: number;

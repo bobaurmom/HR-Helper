@@ -54,6 +54,7 @@ model File {
   updatedAt DateTime   @updatedAt @map("updated_at")
 
   cvEvaluation  CvEvaluation?
+  submissions   FormSubmission[]
 
   @@map("files")
 }
@@ -112,13 +113,15 @@ model Option {
 model FormSubmission {
   id             String           @id @default(uuid())
   formId         String           @map("form_id")
+  cvFileId       Int              @map("cv_file_id")
   status         SubmissionStatus @default(PENDING)
   email          String
   createdAt      DateTime         @default(now()) @map("created_at")
 
   form          Form           @relation(fields: [formId], references: [id], onDelete: Cascade)
-  cvEvaluation  CvEvaluation?
+  cvFile        File           @relation(fields: [cvFileId], references: [id], onDelete: Cascade)
   answers       SubmissionAnswer[]
+  cvEvaluation  CvEvaluation?
   interviewSlot InterviewSlot?
 
   @@map("form_submissions")
