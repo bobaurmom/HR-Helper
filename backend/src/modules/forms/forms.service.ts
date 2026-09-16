@@ -59,9 +59,9 @@ export class FormsService {
       },
     });
 
-    return forms.map((form: typeof forms[number]) => ({
+    return forms.map(({ _count, ...form }) => ({
       ...form,
-      submissionCount: form._count.submissions,
+      submissionCount: _count.submissions,
     }));
   }
 
@@ -85,15 +85,19 @@ export class FormsService {
 
     if (!form) return null;
 
+    const { _count, ...formData } = form;
     return {
-      ...form,
-      submissionCount: form._count.submissions,
+      ...formData,
+      submissionCount: _count.submissions,
     };
   }
 
   async update(id: string, userId: number, dto: UpdateFormDto) {
     const form = await this.prisma.form.findUnique({ where: { id } });
-    if (!form || form.userId !== userId) {
+    if (!form) {
+      throw new NotFoundException('Form not found');
+    }
+    if (form.userId !== userId) {
       throw new ForbiddenException('You do not have permission to edit this form');
     }
 
@@ -208,8 +212,11 @@ export class FormsService {
 
   async updateSchedule(id: string, userId: number, closeAt: string) {
     const form = await this.prisma.form.findUnique({ where: { id } });
-    if (!form || form.userId !== userId) {
-        throw new ForbiddenException('You do not have permission to update this form');
+    if (!form) {
+      throw new NotFoundException('Form not found');
+    }
+    if (form.userId !== userId) {
+      throw new ForbiddenException('You do not have permission to update this form');
     }
 
     return this.prisma.form.update({
@@ -223,8 +230,11 @@ export class FormsService {
 
   async delete(id: string, userId: number) {
     const form = await this.prisma.form.findUnique({ where: { id } });
-    if (!form || form.userId !== userId) {
-        throw new ForbiddenException('You do not have permission to delete this form');
+    if (!form) {
+      throw new NotFoundException('Form not found');
+    }
+    if (form.userId !== userId) {
+      throw new ForbiddenException('You do not have permission to delete this form');
     }
 
     try {

@@ -22,6 +22,14 @@ enum SubmissionStatus {
   REJECTED
 }
 
+enum AiScoreStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
@@ -45,7 +53,7 @@ model File {
   createdAt DateTime   @default(now()) @map("created_at")
   updatedAt DateTime   @updatedAt @map("updated_at")
 
-  cvSubmissions FormSubmission[]
+  cvEvaluation  CvEvaluation?
 
   @@map("files")
 }
@@ -65,6 +73,7 @@ model Form {
   user      User     @relation(fields: [userId], references: [id])
   fields    Field[]
   submissions FormSubmission[]
+  interviewSlots InterviewSlot[]
 
   @@map("forms")
 }
@@ -101,24 +110,39 @@ model Option {
 }
 
 model FormSubmission {
-  id        Int      @id @default(autoincrement())
-  formId    String   @map("form_id")
-  cvFileId  Int      @unique @map("cv_file_id")
-  status    SubmissionStatus @default(PENDING)
-  cvScore   Float?           @map("cv_score")
-  email     String
-  createdAt DateTime @default(now()) @map("created_at")
+  id             String           @id @default(uuid())
+  formId         String           @map("form_id")
+  status         SubmissionStatus @default(PENDING)
+  email          String
+  createdAt      DateTime         @default(now()) @map("created_at")
 
-  form      Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
-  cvFile    File     @relation(fields: [cvFileId], references: [id], onDelete: Cascade)
-  answers   SubmissionAnswer[]
+  form          Form           @relation(fields: [formId], references: [id], onDelete: Cascade)
+  cvFile        File           @relation(fields: [cvFileId], references: [id], onDelete: Cascade)
+  answers       SubmissionAnswer[]
+  interviewSlot InterviewSlot?
 
   @@map("form_submissions")
 }
 
+model CvEvaluation {
+  id             Int              @id @default(autoincrement())
+  submissionId   Int              @unique @map("submission_id")
+  fileId         Int              @unique @map("file_id")
+  score          Float?           @map("score")
+  status         AiScoreStatus    @default(PENDING) @map("status")
+  error          String?          @db.Text @map("error")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  submission     FormSubmission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  file           File             @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@map("cv_evaluations")
+}
+
 model SubmissionAnswer {
   id             Int            @id @default(autoincrement())
-  submissionId   Int            @map("submission_id")
+  submissionId   String         @map("submission_id")
   fieldId        Int            @map("field_id")
   value          String?        
   optionId       Int?           @map("option_id") 
@@ -129,3 +153,27 @@ model SubmissionAnswer {
 
   @@map("submission_answers")
 }
+
+enum InterviewSlotStatus {
+  AVAILABLE
+  BOOKED
+  CANCELLED
+}
+
+model InterviewSlot {
+  id           Int                 @id @default(autoincrement())
+  formId       String              @map("form_id")
+  submissionId String?             @unique @map("submission_id")
+  startTime    DateTime            @map("start_time")
+  endTime      DateTime            @map("end_time")
+  status       InterviewSlotStatus @default(AVAILABLE)
+  meetingLink  String?             @map("meeting_link")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+
+  form         Form                @relation(fields: [formId], references: [id], onDelete: Cascade)
+  submission   FormSubmission?     @relation(fields: [submissionId], references: [id], onDelete: SetNull)
+
+  @@map("interview_slots")
+}
+
