@@ -10,6 +10,7 @@ import { PlusIcon, SlotGeneratorForm } from '../components/common/SlotGenerator'
 import { getApplicantName, initialsFromNameOrEmail } from '../utils/applicantName';
 import { useForms, useSubmissions, useFormDetail } from '../hooks/useWorkspaceData';
 import ScoreBadge from '../components/common/ScoreBadge';
+import UserMenu from '../components/common/UserMenu';
 
 const INITIAL_TEMPLATES = [
   {
@@ -732,9 +733,7 @@ function EmailSequences() {
             <MessageIcon />
             <Badge count="2" />
           </button>
-          <span className="flex h-[43px] w-[43px] items-center justify-center rounded-full bg-teal text-sm font-bold uppercase text-white shadow-sm">
-            DS
-          </span>
+          <UserMenu />
         </div>
       </div>
 

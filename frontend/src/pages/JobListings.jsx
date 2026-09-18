@@ -6,6 +6,7 @@ import { useFormActions } from '../hooks/useFormActions';
 import { useForms } from '../hooks/useWorkspaceData';
 import { DeleteFormModal, CloseFormModal, OpenFormModal } from '../components/forms/FormModals';
 import SearchBar from '../components/common/SearchBar';
+import UserMenu from '../components/common/UserMenu';
 
 function StatusPill({ status }) {
   const styles = {
@@ -547,9 +548,7 @@ function JobListingsPage() {
                 <MessageIcon />
                 <Badge count="2" />
               </button>
-              <span className="flex h-[43px] w-[43px] items-center justify-center rounded-full bg-teal text-sm font-bold uppercase text-white shadow-sm">
-                DS
-              </span>
+              <UserMenu />
             </div>
           </div>
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getApplicantName } from '../utils/applicantName';
 import { fetchWorkspaceData, useForms } from '../hooks/useWorkspaceData';
+import UserMenu from '../components/common/UserMenu';
 
 
 const formatTime = (iso) =>
@@ -251,9 +252,7 @@ export default function InterviewSlots() {
                 <MessageIcon />
                 <Badge count="2" />
               </button>
-              <span className="flex h-[43px] w-[43px] items-center justify-center rounded-full bg-teal text-sm font-bold uppercase text-white shadow-sm">
-                DS
-              </span>
+              <UserMenu />
             </div>
           </div>
 
