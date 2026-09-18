@@ -2,24 +2,9 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useNavigation } from '../../context/NavigationContext';
 import ConfirmModal from '../common/ConfirmModal';
+import Logo from '../common/Logo';
 
 const DURATION = 450;
-
-function Logo() {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="relative flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-2xl bg-[#344e41] ring-1 ring-white/10">
-        <span className="font-serif text-[38px] font-bold leading-none text-gold">H</span>
-        <span className="absolute bottom-2 left-2 flex items-end gap-1">
-          <span className="h-1 w-3 rounded-full bg-teal" />
-          <span className="h-1.5 w-4 rounded-full bg-gold" />
-          <span className="h-1 w-2 rounded-full bg-white/25" />
-        </span>
-      </span>
-      <span className="font-sans text-[26px] font-bold leading-none text-white">HiORing</span>
-    </div>
-  );
-}
 
 function DashboardIcon() {
   return (
