@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { listForms, listSubmissions, getForm, listInterviewSlots } from '../services/api';
 
 export function useForms({ enabled = true } = {}) {
-  const [forms, setForms] = useState(null);
+  const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState(null);
 

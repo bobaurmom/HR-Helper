@@ -4,6 +4,7 @@ import {
   createInterviewSlots,
   listInterviewSlots,
   sendTemplateEmail,
+  updateSubmissionStatus,
 } from '../services/api';
 import { PlusIcon, SlotGeneratorForm } from '../components/common/SlotGenerator';
 import { getApplicantName, initialsFromNameOrEmail } from '../utils/applicantName';
@@ -136,6 +137,7 @@ function SendModal({ template, draft, candidate, preloadedCandidates = [], onSel
   const [candidatesError, setCandidatesError] = useState('');
   const [slotGenOpen, setSlotGenOpen] = useState(false);
   const [createdSlotCount, setCreatedSlotCount] = useState(0);
+  const [sentCount, setSentCount] = useState(0);
 
   const isInterview = template?.id === 'interview';
   const preloaded = preloadedCandidates.length > 0 ? preloadedCandidates : candidate ? [candidate] : [];
@@ -219,6 +221,7 @@ function SendModal({ template, draft, candidate, preloadedCandidates = [], onSel
       submissionId: sub.id,
       formId: selectedFormId,
       jobTitle: selectedForm?.title ?? null,
+      status: sub.status,
     });
     setBrowsing(false);
   };
@@ -243,18 +246,40 @@ function SendModal({ template, draft, candidate, preloadedCandidates = [], onSel
       }
     }
 
-    if (preloaded.length > 0) {
-      const invalid = preloaded.filter((c) => !EMAIL_PATTERN.test((c.email || '').trim()));
-      if (invalid.length) {
-        setError('Some selected candidates have invalid email addresses.');
-        return;
-      }
-      setError('');
-      setSending(true);
-      try {
-        for (const c of preloaded) {
-          const form = formList.find((f) => f.id === c.formId);
-          const title = c.jobTitle || form?.title || '';
+    const recipients = preloaded.length > 0 ? preloaded : candidate ? [candidate] : [];
+    if (recipients.length === 0) {
+      setError('Select a candidate to continue.');
+      return;
+    }
+
+    const invalid = recipients.filter((c) => !EMAIL_PATTERN.test((c.email || '').trim()));
+    if (invalid.length) {
+      setError('Some selected candidates have invalid email addresses.');
+      return;
+    }
+
+    const alreadyContacted = recipients.filter(
+      (c) => c?.status === 'APPROVED' || c?.status === 'REJECTED'
+    );
+    const pending = recipients.filter(
+      (c) => c?.status !== 'APPROVED' && c?.status !== 'REJECTED'
+    );
+    if (pending.length === 0) {
+      setError('Nothing to send — every selected candidate has already been invited or rejected.');
+      return;
+    }
+
+    const targetStatus = template.id === 'rejection' ? 'REJECTED' : 'APPROVED';
+
+    setError('');
+    setSending(true);
+    let sentForClick = 0;
+    const failures = [];
+    try {
+      for (const c of pending) {
+        const form = formList.find((f) => f.id === c.formId);
+        const title = c.jobTitle || form?.title || '';
+        try {
           await sendTemplateEmail({
             to: c.email,
             subject: draft.subject,
@@ -268,44 +293,37 @@ function SendModal({ template, draft, candidate, preloadedCandidates = [], onSel
                 : '',
             },
           });
+          sentForClick += 1;
+          if (c.formId && c.submissionId) {
+            try {
+              await updateSubmissionStatus(c.formId, c.submissionId, targetStatus);
+            } catch {
+              // email delivered; status marking is best-effort here
+            }
+          }
+        } catch {
+          failures.push(c.email);
         }
-        setSent(true);
-      } catch (err) {
-        setError(err?.message || 'Failed to send the emails. Please try again.');
-      } finally {
-        setSending(false);
       }
-      return;
-    }
-
-    const target = candidate?.email?.trim();
-    if (!target) {
-      setError('Select a candidate to continue.');
-      return;
-    }
-    setError('');
-    setSending(true);
-    try {
-      const title = candidate?.jobTitle || selectedForm?.title || '';
-      await sendTemplateEmail({
-        to: target,
-        subject: draft.subject,
-        templateName: template.id,
-        context: {
-          candidateName: target.split('@')[0],
-          jobTitle: title,
-          companyName: 'HiOring',
-          scheduleLink:
-            isInterview && candidate?.formId && candidate?.submissionId
-              ? `${window.location.origin}/schedule/${candidate.formId}/${candidate.submissionId}`
-              : '',
-        },
-      });
-      setSent(true);
-    } catch (err) {
-      setError(err?.message || 'Failed to send the email. Please try again.');
     } finally {
       setSending(false);
+    }
+
+    if (failures.length === 0) {
+      setSentCount(sentForClick);
+      setSent(true);
+    } else if (sentForClick > 0) {
+      setSentCount(sentForClick);
+      setError(
+        `${failures.length} of ${recipients.length} email${failures.length === 1 ? '' : 's'} failed to send. The rest were sent and marked.`
+      );
+      setSent(true);
+    } else {
+      setError(
+        failures.length === 1
+          ? 'Failed to send the email. Please try again.'
+          : `Failed to send ${failures.length} email${failures.length === 1 ? '' : 's'}. Please try again.`
+      );
     }
   };
 
@@ -376,13 +394,16 @@ function SendModal({ template, draft, candidate, preloadedCandidates = [], onSel
             <div className="flex items-start gap-3 rounded-xl bg-[#a7eda7]/40 px-4 py-3 text-sm font-semibold text-[#0d6921]">
               <CheckIcon />
               <span role="status">
-              {multi
-                ? `Email sent to ${preloaded.length} candidates.`
-                : preloaded.length === 1
-                ? `Email sent to ${preloaded[0].email}.`
-                : `Email sent to ${candidate?.email ?? ''}.`}
+              {sentCount === 1
+                ? `Email sent to ${sentCount} candidate.`
+                : `Email sent to ${sentCount} candidates.`}
             </span>
             </div>
+            {error && (
+              <p className="mt-3 rounded-lg bg-yellow-100 px-3 py-2 text-sm font-semibold text-yellow-800" role="alert">
+                {error}
+              </p>
+            )}
             <div className="mt-6 flex justify-end">
               <button
                 type="button"

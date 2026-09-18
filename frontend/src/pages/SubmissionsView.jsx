@@ -8,8 +8,6 @@ import {
   listSubmissions,
   getSubmission,
   deleteSubmission,
-  updateSubmissionStatus,
-  bulkUpdateSubmissionStatus,
   rescoreSubmission,
   getFileDownloadUrl,
 } from '../services/api';
@@ -94,7 +92,7 @@ function ConfirmDeleteModal({ email, deleting, error, onCancel, onConfirm }) {
   );
 }
 
-function ConfirmApproveModal({ count, busy, invite = false, onCancel, onConfirm }) {
+function ConfirmApproveModal({ count, invite = false, onCancel, onConfirm }) {
   const action = invite ? 'Invite' : 'Approve';
   return (
     <div
@@ -112,28 +110,27 @@ function ConfirmApproveModal({ count, busy, invite = false, onCancel, onConfirm 
           {action} {count} candidate{count === 1 ? '' : 's'}?
         </h3>
         <p className="mt-2 text-sm text-stone-600">
-          They will be approved and taken to the Email Sequences page so you can set up
-          interview time slots before sending the invitation.
+          You&rsquo;ll be taken to the Email Sequences page to set up interview time slots and send
+          the invitation. Candidates are only marked as Approved once their invitation email is
+          actually sent.
         </p>
         <p className="mt-4 rounded-xl bg-gold/30 px-3 py-2.5 text-sm font-bold text-plum">
-          This is a one-way decision — once confirmed, it cannot be reversed or changed later.
+          Once an invitation email is sent, the decision cannot be undone.
         </p>
         <div className="mt-5 flex justify-end gap-2">
           <button
             type="button"
             onClick={onCancel}
-            disabled={busy}
-            className="rounded-full border border-plum/30 px-4 py-2 text-sm font-semibold text-plum transition hover:bg-plum hover:text-white disabled:opacity-50"
+            className="rounded-full border border-plum/30 px-4 py-2 text-sm font-semibold text-plum transition hover:bg-plum hover:text-white"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            disabled={busy}
-            className="rounded-full bg-[#588157] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#163726] disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-full bg-[#588157] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#163726]"
           >
-            {busy ? `${invite ? 'Inviting' : 'Approving'}...` : 'Confirm & continue'}
+            Confirm & continue
           </button>
         </div>
       </div>
@@ -141,7 +138,7 @@ function ConfirmApproveModal({ count, busy, invite = false, onCancel, onConfirm 
   );
 }
 
-function ConfirmRejectModal({ count, busy, onCancel, onConfirm }) {
+function ConfirmRejectModal({ count, onCancel, onConfirm }) {
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-plum-dark/50 p-4 backdrop-blur-sm"
@@ -158,28 +155,26 @@ function ConfirmRejectModal({ count, busy, onCancel, onConfirm }) {
           Reject {count} candidate{count === 1 ? '' : 's'}?
         </h3>
         <p className="mt-2 text-sm text-stone-600">
-          They will be marked as Rejected and taken to the Email Sequences page so you can send
-          each candidate a rejection email.
+          You&rsquo;ll be taken to the Email Sequences page to send each candidate a rejection
+          email. Candidates are only marked as Rejected once their rejection email is actually sent.
         </p>
         <p className="mt-4 rounded-xl bg-red-100 px-3 py-2.5 text-sm font-bold text-red-700">
-          This is a one-way decision — once confirmed, it cannot be reversed or changed later.
+          Once a rejection email is sent, the decision cannot be undone.
         </p>
         <div className="mt-5 flex justify-end gap-2">
           <button
             type="button"
             onClick={onCancel}
-            disabled={busy}
-            className="rounded-full border border-plum/30 px-4 py-2 text-sm font-semibold text-plum transition hover:bg-plum hover:text-white disabled:opacity-50"
+            className="rounded-full border border-plum/30 px-4 py-2 text-sm font-semibold text-plum transition hover:bg-plum hover:text-white"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            disabled={busy}
-            className="rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
           >
-            {busy ? 'Rejecting...' : 'Confirm & continue'}
+            Confirm & continue
           </button>
         </div>
       </div>
@@ -263,7 +258,6 @@ function SubmissionsView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(new Set());
-  const [busy, setBusy] = useState(false);
   const [approveTarget, setApproveTarget] = useState(null);
   const [rejectTarget, setRejectTarget] = useState(null);
   const [detail, setDetail] = useState(null);
@@ -380,69 +374,35 @@ function SubmissionsView() {
     }
   };
 
-  const changeStatus = async (ids, status) => {
-    if (!formId || busy || ids.length === 0) return false;
-    setBusy(true);
-    setError(null);
-    try {
-      if (ids.length === 1) {
-        await updateSubmissionStatus(formId, ids[0], status);
-      } else {
-        await bulkUpdateSubmissionStatus(formId, ids, status);
-      }
-      setSubmissions((prev) =>
-        prev.map((s) => (ids.includes(s.id) ? { ...s, status } : s))
-      );
-      if (detail && ids.includes(detail.id)) setDetail({ ...detail, status });
-      setSelected(new Set());
-      return true;
-    } catch (err) {
-      setError(err.message || 'Failed to update status.');
-      return false;
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const confirmApprove = async () => {
+  const confirmApprove = () => {
     if (!approveTarget || approveTarget.length === 0) return;
     const targets = approveTarget;
     setApproveTarget(null);
-    const ok = await changeStatus(
-      targets.map((s) => s.id),
-      'APPROVED'
-    );
-    if (ok) {
-      goToEmailSequencesWs({
-        candidates: targets.map((s) => ({
-          email: s.email,
-          submissionId: s.id,
-          formId,
-          jobTitle: form?.title ?? null,
-        })),
-      });
-    }
+    goToEmailSequencesWs({
+      candidates: targets.map((s) => ({
+        email: s.email,
+        submissionId: s.id,
+        formId,
+        jobTitle: form?.title ?? null,
+        status: s.status,
+      })),
+    });
   };
 
-  const confirmReject = async () => {
+  const confirmReject = () => {
     if (!rejectTarget || rejectTarget.length === 0) return;
     const targets = rejectTarget;
     setRejectTarget(null);
-    const ok = await changeStatus(
-      targets.map((s) => s.id),
-      'REJECTED'
-    );
-    if (ok) {
-      goToEmailSequencesWs({
-        candidates: targets.map((s) => ({
-          email: s.email,
-          submissionId: s.id,
-          formId,
-          jobTitle: form?.title ?? null,
-        })),
-        templateId: 'rejection',
-      });
-    }
+    goToEmailSequencesWs({
+      candidates: targets.map((s) => ({
+        email: s.email,
+        submissionId: s.id,
+        formId,
+        jobTitle: form?.title ?? null,
+        status: s.status,
+      })),
+      templateId: 'rejection',
+    });
   };
 
   const confirmDelete = async () => {
@@ -634,7 +594,6 @@ function SubmissionsView() {
                 <div className="ml-auto flex flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    disabled={busy}
                     onClick={() =>
                       setApproveTarget(
                         selectedIds
@@ -649,7 +608,6 @@ function SubmissionsView() {
                   </button>
                   <button
                     type="button"
-                    disabled={busy}
                     onClick={() =>
                       setRejectTarget(
                         selectedIds
@@ -664,7 +622,6 @@ function SubmissionsView() {
                   </button>
                   <button
                     type="button"
-                    disabled={busy}
                     onClick={() => setSelected(new Set())}
                     className="rounded-full bg-white/15 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-white/25 disabled:opacity-50"
                   >
@@ -736,7 +693,6 @@ function SubmissionsView() {
                             {submission.status === 'PENDING' && (
                               <button
                                 type="button"
-                                disabled={busy}
                                 onClick={() => setApproveTarget([submission])}
                                 className="rounded-full border border-[#0d6921]/30 px-3 py-1 text-[11px] font-bold text-[#0d6921] transition hover:bg-[#a7eda7] disabled:opacity-50"
                               >
@@ -746,7 +702,6 @@ function SubmissionsView() {
                             {submission.status === 'PENDING' && (
                               <button
                                 type="button"
-                                disabled={busy}
                                 onClick={() => setRejectTarget([submission])}
                                 className="rounded-full border border-red-300 px-3 py-1 text-[11px] font-bold text-red-600 transition hover:bg-red-100 disabled:opacity-50"
                               >
@@ -755,7 +710,7 @@ function SubmissionsView() {
                             )}
                             <button
                               type="button"
-                              disabled={busy || cvBusyId === submission.id || !submission.cvEvaluation?.file?.id}
+                              disabled={cvBusyId === submission.id || !submission.cvEvaluation?.file?.id}
                               onClick={() => openCv(submission)}
                               aria-label={`Review CV from ${getApplicantName(submission, form)}`}
                               title={submission.cvEvaluation?.file?.id ? 'Review CV' : 'No CV available'}
@@ -776,7 +731,7 @@ function SubmissionsView() {
                             </button>
                             <button
                               type="button"
-                              disabled={busy || rescoring || submission.cvEvaluation?.status === 'PROCESSING'}
+                              disabled={rescoring || submission.cvEvaluation?.status === 'PROCESSING'}
                               onClick={() => doRescore(submission)}
                               aria-label={`Rescore submission from ${getApplicantName(submission, form)}`}
                               title={
@@ -832,7 +787,6 @@ function SubmissionsView() {
       {approveTarget && (
         <ConfirmApproveModal
           count={approveTarget.length}
-          busy={busy}
           invite={inviteMode}
           onCancel={() => setApproveTarget(null)}
           onConfirm={confirmApprove}
@@ -842,7 +796,6 @@ function SubmissionsView() {
       {rejectTarget && (
         <ConfirmRejectModal
           count={rejectTarget.length}
-          busy={busy}
           onCancel={() => setRejectTarget(null)}
           onConfirm={confirmReject}
         />
