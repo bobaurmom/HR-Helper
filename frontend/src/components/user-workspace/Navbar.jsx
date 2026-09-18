@@ -188,7 +188,7 @@ function SidebarContent({ active, setActive, onNavigate, onRequestLeave }) {
   return (
     <div className="flex h-full w-full flex-col bg-[#344e41] py-6">
       <div className="px-6 pb-6">
-        <Logo />
+        <Logo light />
       </div>
 
       <nav className="flex-1 overflow-y-auto px-4">
@@ -302,7 +302,7 @@ function Navbar() {
     <>
       <header className="fixed inset-x-0 top-0 z-40 flex h-16 items-center justify-between bg-[#344e41] px-4 lg:hidden">
         <div className="scale-90 origin-left">
-          <Logo />
+          <Logo light />
         </div>
         <button
           type="button"

@@ -1,11 +1,12 @@
-import logo from '../../assets/Logo_HiORing.png';
+import logo from '../../assets/Logo_HiORing.svg';
+import logoLight from '../../assets/Logo_HiORing-light.svg';
 
-function Logo() {
+function Logo({ light = false, className = 'h-10 w-auto' }) {
   return (
     <img
-      src={logo}
+      src={light ? logoLight : logo}
       alt="HiORing"
-      className="h-10 w-auto object-contain"
+      className={`object-contain ${className}`}
       draggable={false}
     />
   );

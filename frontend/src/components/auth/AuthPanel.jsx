@@ -9,7 +9,7 @@ const bullets = [
 function AuthPanel() {
   return (
     <div className="hidden flex-col bg-plum px-10 py-8 text-[#f2f0e8] lg:flex lg:w-[44%]">
-      <Logo />
+      <Logo light />
       <div className="flex flex-1 flex-col justify-center">
         <p className="font-sans text-2xl font-semibold leading-snug md:text-[26px]">
           Set up your hiring workflow in minutes.
