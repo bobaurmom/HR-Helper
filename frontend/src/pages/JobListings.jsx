@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import Navbar from '../components/user-workspace/Navbar';
 import { useNavigation } from '../context/NavigationContext';
-import { listForms } from '../services/api';
 import { formatDateTime, getFormStatus, getNextFormsStatusTime } from '../utils/forms';
 import { useNow } from '../hooks/useNow';
 import { useFormActions } from '../hooks/useFormActions';
+import { useForms } from '../hooks/useWorkspaceData';
 import { DeleteFormModal, CloseFormModal, OpenFormModal } from '../components/forms/FormModals';
 import SearchBar from '../components/common/SearchBar';
 
@@ -453,8 +452,7 @@ function JobCard({ job, onApplicants, onEdit, onDelete, onDuplicate, onCopyLink,
 
 function JobListingsPage() {
   const { goToSubmissionsWs, goToFormViewWs, goToEditFormWs, goToCreateFormWs } = useNavigation();
-  const [forms, setForms] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { forms, loading, setForms } = useForms();
   const [searchQuery, setSearchQuery] = useState('');
   const now = useNow(getNextFormsStatusTime(forms));
 
@@ -496,23 +494,6 @@ function JobListingsPage() {
     window.scrollTo(0, 0);
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    listForms()
-      .then((data) => {
-        if (!cancelled) setForms(Array.isArray(data) ? data : []);
-      })
-      .catch(() => {
-        if (!cancelled) setForms([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const jobs = (Array.isArray(forms) ? forms : [])
     .map((form) => ({
       form,
@@ -537,10 +518,8 @@ function JobListingsPage() {
     : jobs;
 
   return (
-    <div className="flex min-h-screen bg-[#fffef9] font-sans text-stone-800 antialiased">
-      <Navbar />
-      <main className="min-w-0 flex-1 px-5 pb-10 pt-24 sm:px-8 lg:ml-[297px] lg:pt-10">
-        <div className="mx-auto max-w-site">
+    <div>
+      <div className="mx-auto max-w-site">
           <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
             <div>
               <h1 className="font-sans text-[26px] font-bold leading-none tracking-tight text-[#344e41]">
@@ -615,7 +594,7 @@ function JobListingsPage() {
                         key={job.id}
                         job={job}
                         onApplicants={() => goToSubmissionsWs(job.id)}
-                        onEdit={(job.form.submissionCount ?? 0) === 0 ? () => goToEditFormWs(job.id) : undefined}
+                        onEdit={() => goToEditFormWs(job.id)}
                         onDelete={() => setDeleteTarget(job.form)}
                         onDuplicate={() => handleDuplicate(job.form)}
                         onCopyLink={() => copyLink(job.form)}
@@ -655,8 +634,6 @@ function JobListingsPage() {
             </div>
           </div>
         </div>
-      </main>
-
       {deleteTarget && (
         <DeleteFormModal
           title={deleteTarget.title}

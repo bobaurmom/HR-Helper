@@ -3,9 +3,9 @@ import { useNavigation } from '../../context/NavigationContext';
 
 const links = [
   { label: 'Home', href: '#top' },
-  { label: 'Features', href: '#features' },
-  { label: 'How it works', href: '#how-it-works' },
   { label: 'About Us', href: '#about' },
+  { label: 'How it works', href: '#how-it-works' },
+  { label: 'Features', href: '#features' },
   { label: 'Support', href: '#support' },
 ];
 

@@ -1,6 +1,6 @@
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useNavigation } from '../../context/NavigationContext';
-import ConfirmModal from '../common/ConfirmModal';
 import { useAuth } from '../../context/AuthContext';
 
 const links = [
@@ -25,12 +25,31 @@ function Logo() {
 
 function Navbar() {
   const { goToWorkspace, goToLogin } = useNavigation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [rendered, setRendered] = useState(false);
   const [visible, setVisible] = useState(false);
   const [pill, setPill] = useState({ x: 0, w: 0, visible: false });
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpen]);
+
+  const handleLogout = async () => {
+    setMenuOpen(false);
+    await logout();
+    navigate('/');
+  };
 
   useEffect(() => {
     if (open) {
@@ -92,7 +111,7 @@ function Navbar() {
               onClick={(e) => {
                 if (link.label === 'Workspace') {
                   e.preventDefault();
-                  setShowConfirm(true);
+                  goToWorkspace();
                 }
               }}
               className="relative z-10 rounded-full px-4 py-2 text-sm font-medium text-stone-700 transition-colors duration-200 hover:text-plum"
@@ -104,13 +123,45 @@ function Navbar() {
 
         <div className="hidden items-center gap-2 pr-1 lg:flex">
           {user ? (
-            <div className="group relative flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors duration-200 hover:bg-[#DAD7CD]">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-plum text-sm font-bold uppercase text-white">
-                {user.name? user.name[0] : 'U'}
-              </span>
-              <span className="max-w-[15rem] truncate text-sm font-semibold text-plum">
-                {user.name? user.name : user.email}
-              </span>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setMenuOpen((v) => !v)}
+                className="flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 transition-colors duration-200 hover:bg-[#DAD7CD]"
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-plum text-sm font-bold uppercase text-white">
+                  {user.name? user.name[0] : 'U'}
+                </span>
+                <span className="max-w-[15rem] truncate text-sm font-semibold text-plum">
+                  {user.name? user.name : user.email}
+                </span>
+              </button>
+
+              {menuOpen && (
+                <div
+                  ref={menuRef}
+                  className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl border border-plum/10 bg-white py-1 shadow-lg shadow-plum/10"
+                >
+                  <div className="border-b border-stone-100 px-4 py-3">
+                    <p className="truncate text-sm font-semibold text-plum">
+                      {user.name || 'HiORing user'}
+                    </p>
+                    <p className="truncate text-xs text-stone-500">{user.email || user.name}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-sm font-semibold text-stone-700 transition hover:bg-red-50 hover:text-red-600"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <path d="m16 17 5-5-5-5" />
+                      <path d="M21 12H9" />
+                    </svg>
+                    Log out
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <button
@@ -154,7 +205,7 @@ function Navbar() {
                   if (link.label === 'Workspace') {
                     e.preventDefault();
                     setOpen(false);
-                    setShowConfirm(true);
+                    goToWorkspace();
                   } else {
                     setOpen(false);
                   }
@@ -187,17 +238,6 @@ function Navbar() {
           </div>
         </div>
       )}
-
-      <ConfirmModal
-        open={showConfirm}
-        onClose={() => setShowConfirm(false)}
-        onConfirm={() => {
-          setShowConfirm(false);
-          goToWorkspace();
-        }}
-        title="Enter Workspace"
-        message="Do you want to enter Workspace?"
-      />
     </div>
   );
 }
