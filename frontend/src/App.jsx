@@ -16,6 +16,7 @@ import SubmissionsView from './pages/SubmissionsView';
 import WorkspaceShell from './components/workspace/WorkspaceShell';
 import EmailSequences from './pages/EmailSequences';
 import InterviewSlots from './pages/InterviewSlots';
+import Billing from './pages/Billing';
 
 function RequireAuth({ children }) {
   const { user, loading, authError } = useAuth();
@@ -91,6 +92,7 @@ function App() {
             <Route path="jobs" element={<JobListingsPage />} />
             <Route path="email-sequences" element={<EmailSequences />} />
             <Route path="interview-slots" element={<InterviewSlots />} />
+            <Route path="billing" element={<Billing />} />
             <Route path="forms/new" element={<CreateForm />} />
             <Route path="forms/:formId/edit" element={<EditForm />} />
             <Route path="forms/:formId" element={<FormView />} />
