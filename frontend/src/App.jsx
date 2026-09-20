@@ -12,6 +12,8 @@ import EditForm from './pages/EditForm';
 import FormView from './pages/FormView';
 import ApplyForm from './pages/ApplyForm';
 import SubmissionsView from './pages/SubmissionsView';
+import CandidateEmailPage from './pages/CandidateEmailPage';
+import EmailSequencesPage from './pages/EmailSequencesPage';
 import WorkspaceShell from './components/workspace/WorkspaceShell';
 
 function RequireAuth({ children }) {
@@ -99,10 +101,26 @@ function App() {
             }
           />
           <Route
+            path="/hr/forms/:formId/email"
+            element={
+              <RequireAuth>
+                <CandidateEmailPage />
+              </RequireAuth>
+            }
+          />
+          <Route
             path="/workspace"
             element={
               <RequireAuth>
                 <User_Workspace />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/workspace/email-sequences"
+            element={
+              <RequireAuth>
+                <EmailSequencesPage />
               </RequireAuth>
             }
           />
@@ -150,6 +168,16 @@ function App() {
               <RequireAuth>
                 <WorkspaceShell>
                   <SubmissionsView />
+                </WorkspaceShell>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/workspace/forms/:formId/email"
+            element={
+              <RequireAuth>
+                <WorkspaceShell>
+                  <CandidateEmailPage />
                 </WorkspaceShell>
               </RequireAuth>
             }

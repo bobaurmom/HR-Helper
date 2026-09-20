@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useFormsBackNav } from '../hooks/useFormsBackNav';
 import Checkbox from '../components/common/Checkbox';
 import {
@@ -11,6 +11,9 @@ import {
   bulkUpdateSubmissionStatus,
   rescoreSubmission,
 } from '../services/api';
+
+const isWorkspace = window.location.pathname.startsWith('/workspace');
+const basePath = isWorkspace ? '/workspace' : '/hr';
 
 const STATUS_META = {
   PENDING: { label: 'Pending', className: 'bg-gold text-plum', dot: 'bg-plum' },
@@ -180,6 +183,7 @@ function DetailModal({ detail, onClose }) {
 
 function SubmissionsView() {
   const { formId } = useParams();
+  const navigate = useNavigate();
   const backTo = useFormsBackNav();
   const [form, setForm] = useState(null);
   const [submissions, setSubmissions] = useState([]);
@@ -495,6 +499,13 @@ function SubmissionsView() {
                 <div className="ml-auto flex flex-wrap items-center gap-2">
                   <button
                     type="button"
+                    onClick={() => navigate(`${basePath}/forms/${formId}/email`, { state: { selectedCandidates: selectedIds } })}
+                    className="rounded-full bg-gold px-4 py-1.5 text-xs font-bold text-plum transition hover:brightness-95"
+                  >
+                    Send Email
+                  </button>
+                  <button
+                    type="button"
                     disabled={busy}
                     onClick={() => changeStatus(selectedIds, 'APPROVED')}
                     className="rounded-full bg-[#a7eda7] px-4 py-1.5 text-xs font-bold text-[#0d6921] transition hover:brightness-95 disabled:opacity-50"
@@ -574,6 +585,13 @@ function SubmissionsView() {
                         </td>
                         <td className="px-4 py-3.5">
                           <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => navigate(`${basePath}/forms/${formId}/email`, { state: { selectedCandidates: [submission.id] } })}
+                              className="rounded-full border border-plum/30 px-3 py-1 text-[11px] font-bold text-plum transition hover:bg-plum hover:text-white"
+                            >
+                              Email
+                            </button>
                             {submission.status !== 'APPROVED' && (
                               <button
                                 type="button"

@@ -24,13 +24,11 @@ export class EmailService {
         if (!user || !user.googleRefreshToken) {
             throw new UnauthorizedException('Google account not linked or missing refresh token.');
         }
-
         const templateRelativePath = path.join('modules', 'email', 'templates', `${templateName}.hbs`);
         const templatePaths = [
             path.join(process.cwd(), 'dist', templateRelativePath),
             path.join(process.cwd(), 'src', templateRelativePath),
         ];
-        
         const filePath = templatePaths.find((candidate) => fs.existsSync(candidate));
         if (!filePath) {
             throw new Error(`Email template '${templateName}' not found.`);

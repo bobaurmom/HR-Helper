@@ -146,7 +146,7 @@ function LogoutIcon() {
 const mainNav = [
   { label: 'Dashboards', icon: DashboardIcon, navigate: 'workspace' },
   { label: 'Candidates Interview', icon: UsersIcon, soon: true },
-  { label: 'Email Sequences', icon: MailIcon, soon: true },
+  { label: 'Email Sequences', icon: MailIcon, navigate: 'email-sequences' },
   { label: 'Job List', icon: BriefcaseIcon, navigate: 'job-listings' },
 ];
 
@@ -201,7 +201,7 @@ function NavItem({ label, icon: Icon, active, soon, onClick }) {
 }
 
 function SidebarContent({ active, setActive, onNavigate, onRequestLeave }) {
-  const { goToWorkspace, goToHR, goToJobListings } = useNavigation();
+  const { goToWorkspace, goToHR, goToJobListings, goToEmailSequences } = useNavigation();
 
   const select = (label, item) => {
     setActive(label);
@@ -209,6 +209,7 @@ function SidebarContent({ active, setActive, onNavigate, onRequestLeave }) {
     if (item?.navigate === 'workspace') goToWorkspace();
     if (item?.navigate === 'hr') goToHR();
     if (item?.navigate === 'job-listings') goToJobListings();
+    if (item?.navigate === 'email-sequences') goToEmailSequences();
   };
 
   return (
@@ -282,6 +283,7 @@ function Navbar() {
 
   useEffect(() => {
     if (location.pathname.startsWith('/workspace/jobs')) setActive('Job List');
+    else if (location.pathname.startsWith('/workspace/email')) setActive('Email Sequences');
     else if (location.pathname.startsWith('/workspace')) setActive('Dashboards');
   }, [location.pathname]);
 

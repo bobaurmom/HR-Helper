@@ -150,3 +150,10 @@ export function rescoreSubmission(formId, submissionId) {
     method: 'POST',
   });
 }
+
+export function sendEmail(to, subject, templateName, context) {
+  return request('/email/send-template', {
+    method: 'POST',
+    body: { to, subject, templateName, context },
+  });
+}

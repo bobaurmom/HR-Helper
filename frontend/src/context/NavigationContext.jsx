@@ -24,6 +24,7 @@ export function NavigationProvider({ children }) {
       goToEditFormWs: (formId) => navigate(`/workspace/forms/${formId}/edit`),
       goToFormViewWs: (formId) => navigate(`/workspace/forms/${formId}`),
       goToSubmissionsWs: (formId) => navigate(`/workspace/forms/${formId}/submissions`),
+      goToEmailSequences: () => navigate('/workspace/email-sequences'),
     }),
     [navigate, location]
   );
