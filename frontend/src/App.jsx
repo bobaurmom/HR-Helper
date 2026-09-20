@@ -4,6 +4,7 @@ import HRPage from './pages/HRPage';
 import Authentication from './pages/Authentication';
 import AuthModal from './components/auth/AuthModal';
 import { NavigationProvider } from './context/NavigationContext';
+import { Toaster } from 'sonner';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import User_Workspace from './pages/User_Workspace';
 import JobListingsPage from './pages/JobListings';
@@ -63,6 +64,7 @@ function App() {
 
   return (
     <AuthProvider>
+      <Toaster richColors closeButton position="bottom-right" />
       <NavigationProvider>
         <Routes location={background || location}>
           <Route path="/" element={<RootRoute />} />

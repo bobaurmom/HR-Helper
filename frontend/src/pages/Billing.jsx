@@ -1,46 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import UserMenu from '../components/common/UserMenu';
-
-function BellIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-6 w-6"
-    >
-      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.7 21a2 2 0 0 1-3.4 0" />
-    </svg>
-  );
-}
-
-function MessageIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-6 w-6"
-    >
-      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-    </svg>
-  );
-}
-
-function Badge({ count }) {
-  return (
-    <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#F90808] px-1 text-[10px] font-bold leading-none text-white">
-      {count}
-    </span>
-  );
-}
 
 function CheckIcon() {
   return (
@@ -320,10 +279,25 @@ function PaymentMethodModal({ open, onClose, onSave }) {
 
 function Billing() {
   const [open, setOpen] = useState(false);
-  const [planKey, setPlanKey] = useState('starter');
+  const [planKey, setPlanKey] = useState(() => localStorage.getItem('hioring_plan_key') || 'starter');
   const [payOpen, setPayOpen] = useState(false);
-  const [card, setCard] = useState({ lastFour: '4242', expiry: '08 / 2028', email: 'billing@hioring.app' });
+  const [card, setCard] = useState(() => {
+    try {
+      const stored = localStorage.getItem('hioring_card');
+      return stored ? JSON.parse(stored) : { lastFour: '4242', expiry: '08 / 2028', email: 'billing@hioring.app' };
+    } catch {
+      return { lastFour: '4242', expiry: '08 / 2028', email: 'billing@hioring.app' };
+    }
+  });
   const plan = PLANS[planKey];
+
+  useEffect(() => {
+    localStorage.setItem('hioring_plan_key', planKey);
+  }, [planKey]);
+
+  useEffect(() => {
+    localStorage.setItem('hioring_card', JSON.stringify(card));
+  }, [card]);
 
   const selectPlan = (key) => {
     setPlanKey(key);
@@ -345,22 +319,6 @@ function Billing() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <button
-            type="button"
-            aria-label="Notifications"
-            className="relative flex h-[51px] w-[51px] items-center justify-center rounded-2xl bg-white text-plum shadow-sm ring-1 ring-plum/10 transition hover:text-teal"
-          >
-            <BellIcon />
-            <Badge count="2" />
-          </button>
-          <button
-            type="button"
-            aria-label="Messages"
-            className="relative flex h-[51px] w-[51px] items-center justify-center rounded-2xl bg-white text-plum shadow-sm ring-1 ring-plum/10 transition hover:text-teal"
-          >
-            <MessageIcon />
-            <Badge count="2" />
-          </button>
           <UserMenu />
         </div>
       </div>
@@ -457,12 +415,9 @@ function Billing() {
         <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-plum/10 lg:col-span-2">
           <div className="flex items-center justify-between border-b border-plum/10 px-6 py-4">
             <p className="text-xs font-bold uppercase tracking-wider text-plum">Invoices</p>
-            <button
-              type="button"
-              className="text-xs font-semibold text-teal transition hover:text-plum"
-            >
-              View all
-            </button>
+            <span className="rounded-full bg-[#f3f1e9] px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-stone-500">
+              Sample data
+            </span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">

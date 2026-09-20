@@ -135,13 +135,6 @@ export function updateSubmissionStatus(formId, submissionId, status) {
   });
 }
 
-export function bulkUpdateSubmissionStatus(formId, submissionIds, status) {
-  return request(`/forms/${formId}/submissions/bulk/status`, {
-    method: 'PATCH',
-    body: { submissionIds, status },
-  });
-}
-
 export function rescoreSubmission(formId, submissionId) {
   return request(`/forms/${formId}/submissions/${submissionId}/rescore`, {
     method: 'POST',
